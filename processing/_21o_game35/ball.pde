@@ -1,8 +1,6 @@
 
 
 class Ball {
-  
-  int testVar;
 
   int id;
   boolean active;
