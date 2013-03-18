@@ -1,6 +1,8 @@
 
 
 class Ball {
+  
+  int testVar;
 
   int id;
   boolean active;
@@ -24,6 +26,7 @@ class Ball {
   float originy = 0;
   float xpos;
   float ypos;
+  
   
   color c;
 
