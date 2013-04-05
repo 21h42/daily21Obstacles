@@ -1,31 +1,45 @@
-import processing.opengl.*;      
-import fisica.*;      // Physics engine. Documentation at :
-// http://www.ricardmarxer.com/fisica/reference/index.html
+/* 21 Obstacles
+ * by dailytouslesjours.com
+ *
+ * version 2013
+ *
+ */
+
+
+import processing.opengl.*;  
 import processing.video.*;     // only for saving out videos
 
-boolean test = true;
-int theFrameRate = 60;
+// Physics engine
+// http://www.ricardmarxer.com/fisica/reference/index.html
+import fisica.*;      
+
+
+boolean test = true;          // effects resolution, second screen placement
+                              // display fps, drawing of floor mask
+int theFrameRate = 60;        // to be updated to current framerate
 
 // GLOBAL SETTINGS
-int sw = test ? 1344 : 2688;  // 2688, 1920. 1344
+int sw = test ? 1344 : 2688;  // 2688 (x769), 1920, 1344
 int sh;
 boolean doOSC = false;
-boolean printInput = false;
-boolean printMore = false;
-boolean doPhone = true;
-boolean doObjects = true;  // 
-boolean doFake = true;      
-boolean doEffects = true;
+boolean printInput = false;   // print OSC input
+boolean printMore = false;    // print ball actions
+boolean doPhone = false;       // thread that jacks phone input PHP every 1000ms
+boolean doObjects = true;     // creates swing objects
+boolean doFake = true;        // fake swing movement from processing (not osc)
+boolean doEffects = false;     // sparkle and radiation
 boolean doBorder = false;
 int border = 10;
-boolean doFloors = true;  // f
-boolean doMask = test ? true : false;  // m
-boolean doBG = true;    // i
+
+boolean doFloors = false;      // create/display floors
+boolean doMask = test ? true : false;  // masking out window area of building
+boolean doBG = true;          // i
 boolean doSecondScreen = test ? false : true;
-boolean doGlow = false;
-boolean doFPS = test ? true : false;
+boolean doGlow = false;        // glowing effect of sparkle
+boolean doFPS = test ? true : false;    // not used?
 color bgColor = color(0,100,200);
-boolean e = true;    // 1.. english  0.. french
+
+boolean e = true;            // true.. english  false.. french
 float languageTimer = 1.0;
 float languageSpeed = 0.004;
 float secretTimer = 0.2;
@@ -37,6 +51,7 @@ MovieMaker mm;
 String moviename = "game_02.mov";
 boolean makeMovie = false;
 
+// flags to triggers events
 boolean FlagAddBigBall = false;
 boolean FlagInitWorld = false;
 boolean FlagAddRandomBall = false;
@@ -48,9 +63,9 @@ ArrayList swings;     // obstacles, controlled by physical swing data
 ArrayList balls;      // incoming user messages
 ArrayList walls;      // building floors and walls
 int ballcount = 0;    
-int maxcount = 250;
-Effects effects;
-ArrayList shooters;
+int maxcount = 250;    // maxium number of all balls allowed, else > killing
+Effects effects;      // sparkles, etc.
+ArrayList shooters;    // objects that 'release' balls
 
 // FONTS AND IMAGES
 //PFont arial60;
@@ -61,15 +76,12 @@ PFont frank24;
 PFont frank48;
 PImage facade;        // image of building facade
 int bgImgNo = 2;      // 1...map
-//PShape logo_21b_e;
-//PShape logo_21b_f;
-PShape logo_parcours;
 
-Phone phone;
+Phone phone;          // class that checks php-files for new phone messages
 
-float floorH = 0.034;  // 0.032;
-float maskH = 0.024;  // 0.024;
-float[] heightFloor = new float[6];
+float floorH = 0.034;      // 0.032;
+float maskH = 0.024;       // 0.024;
+float[] heightFloor = new float[6];  // positions of window areas
 Row[] rows = new Row[6];
 
 // SET THE PORTALS:  array with floors.
@@ -96,8 +108,21 @@ float[][] floorParts = {
   }
 };
 
-
 void createSwings() {
+  
+
+  
+  int n = 0;
+  for(int i=0; i<21; i++) {
+      // POLY OBJECTS moving
+                        // no,   x,             y,       scale,   type, fakemoving, color, movex, movey
+     swings.add(new Poly(n++, getX(0.03+i*0.047), getY(0.56), 0.04, "block", doFake, i%5, 0.0, 0.045));
+  }
+  
+}
+
+
+void createSwings2012() {
   // POLY OBJECTS rotating
   // no, x, y, scale, type, fakemoving, color
 
@@ -122,50 +147,48 @@ void createSwings() {
   //  }
 
   // 1-3
-  swings.add(new Poly(n++, getX(0.2), getY(0.244), 0.08, "flipper", false, 3));  //  top align flipper 
-  swings.add(new Poly(n++, getX(0.15), getY(0.43), 0.08, "flipper", false, 7));  // set above hole flipper
-  swings.add(new Poly(n++, getX(0.15), getY(0.689), 0.042, "trap1", false, 6));  // trap row 4
+  swings.add(new Poly(n++, getX(0.2), getY(0.244), 0.08, "flipper", doFake, 3));  //  top align flipper 
+  swings.add(new Poly(n++, getX(0.15), getY(0.43), 0.08, "flipper", doFake, 7));  // set above hole flipper
+  swings.add(new Poly(n++, getX(0.15), getY(0.689), 0.042, "trap1", doFake, 6));  // trap row 4
 
   // 4-6
-  swings.add(new RoundShape(n++, getX(0.312), getY(0.26), 0.045, 0.01, 0.04, "magnet", false, 8)); // big magnet on top
-  swings.add(new Poly(n++, getX(0.282), getY(0.52), 0.025, "square", false, 9));  // square
-  swings.add(new RoundShape(n++, getX(0.329), getY(0.7), 0.025, -0.03, 0.00, "multiplier", false, 4));  // left right multi
+  swings.add(new RoundShape(n++, getX(0.312), getY(0.26), 0.045, 0.01, 0.04, "magnet", doFake, 8)); // big magnet on top
+  swings.add(new Poly(n++, getX(0.282), getY(0.52), 0.025, "square", doFake, 9));  // square
+  swings.add(new RoundShape(n++, getX(0.329), getY(0.7), 0.025, -0.03, 0.00, "multiplier", doFake, 4));  // left right multi
   
   // 7-9
-  swings.add(new Poly(n++, getX(0.25), getY(0.999), 0.07, "cross", false, 3)); // cross at bottom getX(0.276), getY(0.882)
-  swings.add(new Poly(n++, getX(0.412), getY(0.479), 0.047, "cross", false, 4));  // center cross
-  swings.add(new Poly(n++, getX(0.533), getY(0.135), 0.08, "flipper", false, 1, 0.055, 0));  // logo slider
+  swings.add(new Poly(n++, getX(0.25), getY(0.999), 0.07, "cross", doFake, 3)); // cross at bottom getX(0.276), getY(0.882)
+  swings.add(new Poly(n++, getX(0.412), getY(0.479), 0.047, "cross", doFake, 4));  // center cross
+  swings.add(new Poly(n++, getX(0.533), getY(0.135), 0.08, "flipper", doFake, 1, 0.055, 0));  // logo slider
   
   // 10-12
-  swings.add(new Poly(n++, getX(0.48), getY(0.56), 0.08, "flipper", false, 2, 0.0, 0.045));  // left higher elevator
-  swings.add(new Poly(n++, getX(0.56), getY(0.873), 0.08, "flipper", false, 4, 0.0, 0.045));  // going up down
-  swings.add(new RoundShape(n++, getX(0.642), getY(0.696), 0.02, 0.01, 0.03, "magnet", false, 5));
+  swings.add(new Poly(n++, getX(0.48), getY(0.56), 0.08, "flipper", doFake, 2, 0.0, 0.045));  // left higher elevator
+  swings.add(new Poly(n++, getX(0.56), getY(0.873), 0.08, "flipper", doFake, 4, 0.0, 0.045));  // going up down
+  swings.add(new RoundShape(n++, getX(0.642), getY(0.696), 0.02, 0.01, 0.03, "magnet", doFake, 5));
   
   // 13-15
-  swings.add(new Poly(n++, getX(0.66), getY(0.29), 0.04, "trap1", false, 3)); // center top trap
-  swings.add(new Poly(n++, getX(0.65), getY(0.47), 0.09, "flipper", false, 6));  // flipper center right
-  swings.add(new RoundShape(n++, getX(0.768), getY(0.7), 0.025, -0.03, 0.00, "multiplier", false, 4));
+  swings.add(new Poly(n++, getX(0.66), getY(0.29), 0.04, "trap1", doFake, 3)); // center top trap
+  swings.add(new Poly(n++, getX(0.65), getY(0.47), 0.09, "flipper", doFake, 6));  // flipper center right
+  swings.add(new RoundShape(n++, getX(0.768), getY(0.7), 0.025, -0.03, 0.00, "multiplier", doFake, 4));
   
   // 19-21
-  swings.add(new Poly(n++, getX(0.858), getY(0.604), 0.08, "flipper", false, 4, 0.05, 0));  // slider left right
-  swings.add(new RoundShape(n++, getX(0.85), getY(0.27), 0.035, 0.01, 0.04, "magnet", false, 8));  // magnet right top
-  swings.add(new Poly(n++, getX(0.8), getY(0.478), 0.045, "cross", false, 3));    // cross right top
+  swings.add(new Poly(n++, getX(0.858), getY(0.604), 0.08, "flipper", doFake, 4, 0.05, 0));  // slider left right
+  swings.add(new RoundShape(n++, getX(0.85), getY(0.27), 0.035, 0.01, 0.04, "magnet", doFake, 8));  // magnet right top
+  swings.add(new Poly(n++, getX(0.8), getY(0.478), 0.045, "cross", doFake, 3));    // cross right top
   
 }
 
 
 void setup() {
-  
-  doOSC = true;
   // 3592x1008   989x252  2688x769   1920x539
   sh = (int) (sw / (3592.0/1008.0));
   if (sw == 2688) sh = 769;
-  size(sw, sh, OPENGL);   // try // JAVA2D // OPENGL 
-  println("screen size: "+sw+" / "+sh);
+  size(sw, sh, OPENGL );   // try // JAVA2D // OPENGL // P3D // P2D 
+  println("screen size \t"+sw+" / "+sh);
 
   if (makeMovie) mm = new MovieMaker(this, width, height, moviename, 25, MovieMaker.ANIMATION, MovieMaker.BEST);
   
-  phone = new Phone(1000);
+  phone = new Phone(1000);    // checks every 1000ms
   if (doPhone) phone.start();
 
   arial24 = loadFont("arial24.vlw");
@@ -176,13 +199,6 @@ void setup() {
   frank48 = loadFont("FrankfurterPlain-48.vlw");
   textFont(apercu24, 12);
   loadBG();
-//  logo_21b_e = loadShape("logo_21b_english.svg");
-//  logo_21b_e.disableStyle();
-//  logo_21b_f = loadShape("logo_21b_french.svg");
-//  logo_21b_f.disableStyle();
-  logo_parcours = loadShape("logo_parcours.svg");
-  logo_parcours.disableStyle();
-  if (sw<2688) logo_parcours.scale(0.5);
 
   Fisica.init(this);
   initWorld();
@@ -190,13 +206,22 @@ void setup() {
 
   smooth();
   if (doOSC) startOSC();
+  
+  // set location of undecorated frame on second monitor
   if (doSecondScreen) frame.setLocation(1440, 0);
 }
 
 public void init() {
+  // make frame not displayable
   if (doSecondScreen) frame.removeNotify();
+  
+  // not sure why
   if (doSecondScreen) frame.dispose();
+  
+  // sets the window mode to undecorated 
   if (doSecondScreen) frame.setUndecorated(true);
+  
+  // add notify again
   if (doSecondScreen) frame.addNotify();
   super.init();
 }
@@ -227,6 +252,7 @@ void draw() {
   }
   if (doBG) image(facade, 0, 0, sw, sh);  // sw,sh facade.width,facade.height
   for(int i=1; i<6; i++) rows[i].update();  // = render
+ 
   
   if(balls.size() > maxcount) {
       killBalls();
@@ -253,11 +279,11 @@ void draw() {
     effects.drawRadiation();
   }
 
-  for (int i=shooters.size()-1; i>= 0; i--) {
-    Shooter h = (Shooter) shooters.get(i);
-    h.update();
-    h.render();
-  }
+//  for (int i=shooters.size()-1; i>= 0; i--) {
+//    Shooter h = (Shooter) shooters.get(i);
+//    h.update();
+//    h.render();
+//  }
 
   for (int i=0; i<swings.size(); i++) {
     Swing s = (Swing) swings.get(i);
@@ -309,7 +335,7 @@ float getY(float p) {
 void initWorld() {
   println("initWorld");
   world = new FWorld();                      // initialize Physics World
-  world.setEdges(-5, -5, width+5, height+5);    // set edges so that they align with applet edges
+  world.setEdges(-5, -5, width+5, height+5); // set edges so that they align with applet edges
   world.setEdgesFriction(0);                 // bouncing off edges = effortless
   world.setEdgesRestitution(0);              // bouncing off edges = effortless
   world.setGravity(0, 150);                  // world gravity
@@ -317,10 +343,11 @@ void initWorld() {
   swings = new ArrayList();
   balls = new ArrayList();
   walls = new ArrayList();
-  shooters = new ArrayList();
-  createBuilding();
+
+  createBuilding();                          // create walls and row effects
   if (doObjects) createSwings();
-  createShooters();
+  //  shooters = new ArrayList();
+//  createShooters();
 }
 
 
@@ -355,10 +382,10 @@ void switchLanguage() {
   if(languageTimer<=0) {
     e = !e;
     languageTimer = 1.0;
-    if(random(100)<10) {
-      int n = (int) (random(3) + 1);
-      for(int i=0; i<n; i++) addRandomBall();
-    }
+//    if(random(100)<10) {
+//      int n = (int) (random(3) + 1);
+//      for(int i=0; i<n; i++) addRandomBall();
+//    }
   }
   secretTimer-=secretSpeed;
   if(secretTimer<=0) secretTimer = 1.0;
@@ -477,7 +504,7 @@ void drawLogos() {
   fill(255);
   if (sw<2688) textFont(apercu24, 11);
   else textFont(apercu24, 23);
-//  shape(logo_parcours, getX(0.18), getY(0.02));
+
   text("D A I L Y   T O U S   L E S   J O U R S", getX(0.3), getY(0.97));
   fill(50,100,100);
   textFont(apercu24, 12);
@@ -509,31 +536,48 @@ void drawLogos() {
 // --------------------------------------------------------------------- //
 
 void contactStarted(FContact contact) {
+  
+  // first object for sure will be either a swing or a wall 
+  // because they were added to the world first
   FBody b1 = contact.getBody1();
   String nam = b1.getName();
+  
+  // check for swing names
   if (nam == "poly" || nam == "multiplier" || nam == "magnet") {
+    
+    // get ball
     FCircle ball = (FCircle) contact.getBody2();
+    
     if (ball.getName().equals("ball")) {
+      
+      // get lane/color of ball (saved in the image alpha value)
       int alane = (int) (ball.getImageAlpha()*10);
-      //      println("alane: "+alane);
+
       if (nam == "multiplier") {
+        // set ball name to "clone" to execute cloning in next ball.update()
         ball.setName("clone");
+        // set swing name, to color it to ball/lane color in next poly.update()
         b1.setName("P"+alane+nam);
       } 
+      
       else if (nam == "magnet") {
+        // set swing name, to color it to ball/lane color in next poly.update()
         b1.setName("X"+alane+nam);
-        //        ball.setVelocity(ball.getVelocityX()*0.2,ball.getVelocityY()*0.2);
-      } 
-      else {
-
+        // ball.setVelocity(ball.getVelocityX()*0.2,ball.getVelocityY()*0.2);
+      } else {
+        // set swing name, to color it to ball/lane color in next poly.update()
         b1.setName("X"+alane+nam);
       }
-      effects.addRadiation(contact.getX(), contact.getY(), ball.getFillColor());
-      effects.addSparkles(contact.getX(), contact.getY());
-      // get Height, translate to row
-      int theRow = (int) ((contact.getY()/(float)sh)*8) - 3;
-      if(random(0,100) < 5) {
-        if(theRow>0 && theRow<=6) rows[theRow].animate();
+      
+      if(doEffects) {
+        effects.addRadiation(contact.getX(), contact.getY(), ball.getFillColor());
+        effects.addSparkles(contact.getX(), contact.getY());
+        
+        // get Height, translate to row
+        int theRow = (int) ((contact.getY()/(float)sh)*8) - 3;
+        if(random(0,100) < 5) {
+          if(theRow>0 && theRow<=6) rows[theRow].animate();
+        }
       }
     }
   }
