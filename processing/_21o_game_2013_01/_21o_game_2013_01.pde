@@ -7,16 +7,22 @@
 
 
 import processing.opengl.*;  
+import javax.media.opengl.*;
 import processing.video.*;     // only for saving out videos
 
 // Physics engine
 // http://www.ricardmarxer.com/fisica/reference/index.html
 import fisica.*;      
 
+// OpenGL
+PGraphicsOpenGL pgl; 
+GL gl; 
+int circleListID;            // predefine circle points for faster drawing
+int swingListID;              // predefine swing shape for faster drawing
 
 boolean test = true;          // effects resolution, second screen placement
                               // display fps, drawing of floor mask
-int theFrameRate = 60;        // to be updated to current framerate
+int theFrameRate = 1000;        // to be updated to current framerate
 
 // GLOBAL SETTINGS
 int sw = test ? 1344 : 2688;  // 2688 (x769), 1920, 1344
@@ -28,6 +34,7 @@ boolean doPhone = false;       // thread that jacks phone input PHP every 1000ms
 boolean doObjects = true;     // creates swing objects
 boolean doFake = true;        // fake swing movement from processing (not osc)
 boolean doEffects = false;     // sparkle and radiation
+boolean traceBall = true;      // leave trace of previous positions
 boolean doBorder = false;
 int border = 10;
 
@@ -36,7 +43,7 @@ boolean doMask = test ? true : false;  // masking out window area of building
 boolean doBG = true;          // i
 boolean doSecondScreen = test ? false : true;
 boolean doGlow = false;        // glowing effect of sparkle
-boolean doFPS = test ? true : false;    // not used?
+boolean drawSwings = false;
 color bgColor = color(0,100,200);
 
 boolean e = true;            // true.. english  false.. french
@@ -63,13 +70,11 @@ ArrayList swings;     // obstacles, controlled by physical swing data
 ArrayList balls;      // incoming user messages
 ArrayList walls;      // building floors and walls
 int ballcount = 0;    
-int maxcount = 250;    // maxium number of all balls allowed, else > killing
+int maxcount = 5000;    // maxium number of all balls allowed, else > killing
 Effects effects;      // sparkles, etc.
 ArrayList shooters;    // objects that 'release' balls
 
 // FONTS AND IMAGES
-//PFont arial60;
-PFont arial24;
 PFont apercu24;
 PFont apercubold24;
 PFont frank24;
@@ -108,17 +113,15 @@ float[][] floorParts = {
   }
 };
 
-void createSwings() {
-  
 
-  
+// create 21 swings in a row, all placed center, and moving up+down
+void createSwings() {
   int n = 0;
   for(int i=0; i<21; i++) {
       // POLY OBJECTS moving
                         // no,   x,             y,       scale,   type, fakemoving, color, movex, movey
-     swings.add(new Poly(n++, getX(0.03+i*0.047), getY(0.56), 0.04, "block", doFake, i%5, 0.0, 0.045));
+     swings.add(new Poly(n++, getX(0.03+i*0.047), getY(0.56), 0.04, "block", doFake, i%5, 0.0, 0.085));
   }
-  
 }
 
 
@@ -133,18 +136,6 @@ void createSwings2012() {
   // no, x, y, scale, type, movex, movey, fakemoving, color
 
   int n = 0;
-
-
-
-  //  for(int i=0; i<18; i++) {
-  //    if(i%2==0) {
-  ////    swings.add(new RoundShape(n++,getX(0.1+i*0.05),getY(0.5),0.02,0.1,0.1,"magnet", true, 8));
-  //      swings.add(new Poly(n++,getX(0.1+i*0.05),getY(0.5),0.1,"flipperhalf", true, 8));
-  //    } else {
-  ////    swings.add(new RoundShape(n++,getX(0.1+i*0.05),getY(0.5),0.02,0.1,0.1,"multiplier", true, 8));
-  ////      swings.add(new Poly(n++,getX(0.1+i*0.05),getY(0.5),0.03,"trap1", true, 8,0.1,0.1));
-  //    }
-  //  }
 
   // 1-3
   swings.add(new Poly(n++, getX(0.2), getY(0.244), 0.08, "flipper", doFake, 3));  //  top align flipper 
@@ -180,19 +171,62 @@ void createSwings2012() {
 
 
 void setup() {
-  // 3592x1008   989x252  2688x769   1920x539
+  
+  // SCREEN RESOLUTION:   3592x1008   989x252  2688x769   1920x539
   sh = (int) (sw / (3592.0/1008.0));
   if (sw == 2688) sh = 769;
   size(sw, sh, OPENGL );   // try // JAVA2D // OPENGL // P3D // P2D 
   println("screen size \t"+sw+" / "+sh);
+  
+  smooth();
+  
+  // OPENGL
+  pgl = (PGraphicsOpenGL)g;
+  gl = pgl.beginGL();
+  
+//  gl.glDisable(GL.GL_DEPTH_TEST);
+//  gl.glEnable(GL.GL_BLEND);
+//  gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE);
+//  gl.glDisable(GL.GL_BLEND); 
+  
+//  gl.glHint (gl.GL_POLYGON_SMOOTH_HINT, gl.GL_NICEST);
+//  gl.glEnable(gl.GL_LINE_SMOOTH);
+//  gl.glEnable(GL.GL_POLYGON_SMOOTH);
+//  hint(DISABLE_OPENGL_2X_SMOOTH);
+//  hint(ENABLE_OPENGL_4X_SMOOTH);
+
+  circleListID = gl.glGenLists(1);             // generate circle geometry
+  gl.glNewList(circleListID,GL.GL_COMPILE);    
+  gl.glBegin(GL.GL_TRIANGLE_FAN);
+//  gl.glColor3f(0,0,0);
+  gl.glVertex3f(0,0,0);
+  gl.glNormal3f(0,0,1);
+  int N = 30;                                  // detail level
+  for (int i=0; i<=N; i++) {
+    float theta = (float)(i) / (float)(N) * TWO_PI;
+    gl.glVertex3f(cos(theta), sin(theta), 0);
+  }
+  gl.glEnd();
+  gl.glEndList();
+  
+  swingListID = gl.glGenLists(1);
+  gl.glNewList(swingListID,GL.GL_COMPILE);  
+  gl.glBegin(GL.GL_TRIANGLE_STRIP);
+  gl.glVertex3f(0,0,0);
+  gl.glNormal3f(0,0,1);
+  gl.glVertex3f(-1, -1, 0);
+  gl.glVertex3f(1, -1, 0);
+  gl.glVertex3f(-1, 1, 0);
+  gl.glVertex3f(1, 1, 0);
+  gl.glEnd();
+  gl.glEndList();
+  pgl.endGL();
 
   if (makeMovie) mm = new MovieMaker(this, width, height, moviename, 25, MovieMaker.ANIMATION, MovieMaker.BEST);
   
   phone = new Phone(1000);    // checks every 1000ms
   if (doPhone) phone.start();
 
-  arial24 = loadFont("arial24.vlw");
-  //  arial60 = loadFont("arial60.vlw");
   apercu24 = loadFont("Apercu-24.vlw");
   apercubold24 = loadFont("Apercu-Bold-24.vlw");
   frank24 = loadFont("FrankfurterMediumPlain-24.vlw");
@@ -204,7 +238,7 @@ void setup() {
   initWorld();
   effects = new Effects();
 
-  smooth();
+  
   if (doOSC) startOSC();
   
   // set location of undecorated frame on second monitor
@@ -259,12 +293,13 @@ void draw() {
   }
   
   switchLanguage();
-  drawLogos();
+//  drawLogos();                  // draw logos and all text information
+  drawFramerate();
 
   float step = advance(1/120.0);
   try{
     world.step(step);  
-    world.draw(this);  
+//    world.draw(this);        // no need, everything is drawn externally
   } catch (AssertionError e) {
     logData("AssertionError world.step()");
     // e.printStackTrace();
@@ -288,19 +323,40 @@ void draw() {
   for (int i=0; i<swings.size(); i++) {
     Swing s = (Swing) swings.get(i);
     s.update();
-    s.drawSymbol();
+//    if(drawSwings) s.drawSymbol();
   }
   for (int i=balls.size()-1; i>= 0; i--) {
     try{
       Ball b = (Ball) balls.get(i);
       b.update();
-      b.drawSymbol();
+//      b.drawSymbol();
       if (b.dead()) balls.remove(i); 
     } catch (Exception e) {
       logData("balls.get()");
       e.printStackTrace();
     }
   }
+  
+  
+  gl = pgl.beginGL();            // OPENGL drawing
+  
+  for (int i=balls.size()-1; i>= 0; i--) {
+    try{
+      Ball b = (Ball) balls.get(i);
+      b.render();
+    } catch (Exception e) {
+      logData("balls.get()");
+      e.printStackTrace();
+    }
+  }
+  // draw swings after, so they are on top of the ball-history
+  for (int i=0; i<swings.size(); i++) {
+    Swing s = (Swing) swings.get(i);
+    if(drawSwings) s.render();
+  }
+  pgl.endGL();
+  
+  
 
   if (doEffects) {
     effects.drawSparkles();
@@ -310,6 +366,8 @@ void draw() {
   if (doFloors) drawFloors();
   if (doMask) drawMask();
   if (makeMovie && recording) mm.addFrame();
+  
+  if (frameCount%30==0) println(frameRate + "\t"+balls.size());
 }
 
 
@@ -506,10 +564,6 @@ void drawLogos() {
   else textFont(apercu24, 23);
 
   text("D A I L Y   T O U S   L E S   J O U R S", getX(0.3), getY(0.97));
-  fill(50,100,100);
-  textFont(apercu24, 12);
-  text((int)frameRate, getX(0.01), getY(0.98));    // display framerate
-  
 
   if (sw<2688) textFont(apercu24, 12);
   else textFont(apercubold24, 24);
@@ -528,6 +582,12 @@ void drawLogos() {
   } else if(secretTimer > 0.98 && secretTimer < 1.00) {
     text("Pour un peu de chaos, textez BOOM", getX(0.3), getY(0.84));
   }
+}
+
+void drawFramerate() {
+  fill(50,100,100);
+  textFont(apercu24, 12);
+  text((int) theFrameRate, getX(0.01), getY(0.98));    // display framerate
 }
 
 
@@ -600,7 +660,7 @@ void contactEnded(FContact contact) {
 
 void checkFlags() {
   if(FlagAddManyBalls) {
-    for(int i=0; i<100; i++) addRandomBall();
+    for(int i=0; i<20; i++) addRandomBall();
     FlagAddManyBalls = false;
   }
   if(FlagInitWorld) {
@@ -617,6 +677,7 @@ void checkFlags() {
   }
 }
 
+// change value based on current framerate
 float advance(float timestep) {
   try {
     return timestep*60.0/(float) theFrameRate;

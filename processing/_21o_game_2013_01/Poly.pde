@@ -166,5 +166,18 @@ class Poly extends Swing {
     rect(-full.width/(2*scd),-full.height/(2*scd),full.width/scd,full.height/scd);
     popMatrix();
   }
+  
+  void render() {
+    float w = full.width/scd;
+    float h = full.height/scd;
+    gl.glColor3f(red(displayColor)/255.0,green(displayColor)/255.0,blue(displayColor)/255.0);
+    gl.glPushMatrix();
+    gl.glTranslatef(xpos, ypos, 0);
+//    gl.glRotatef(s.getRotation());
+    gl.glScalef(w/2.0,h/2.0,1);  
+    gl.glCallList(swingListID);
+    gl.glPopMatrix();
+  }
+  
 }
 

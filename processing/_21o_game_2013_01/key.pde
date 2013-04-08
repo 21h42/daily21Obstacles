@@ -9,9 +9,6 @@ void keyReleased() {
       Shooter h = (Shooter) shooters.get(id-1);
       h.launch("1514555"+(int)random(0,9)+(int)random(0,9)+(int)random(0,9)+(int)random(0,9));
     }
-//    Ball b = new Ball(ballcount++,(int) 0,0,(int)(key-'0'));
-//    b.launch((int)(key-'0'));
-//    balls.add(b);
   } else if(key == '8') {
     effects.sparkleRain();
     println("sparkle rain");
@@ -21,11 +18,16 @@ void keyReleased() {
     FlagAddBigBall = true;
     
   } else if(key =='a') {
-    rows[3].animate();
+    traceBall = !traceBall;
+    println("traceBall \t"+traceBall);
     
   } else if(key == '9') {
     println("many balls");
     FlagAddManyBalls = true;
+    
+  } else if(key == 's') {
+    drawSwings = !drawSwings;
+    println("drawSwings \t"+drawSwings);
     
   } else if(key == 'w') {
     // turn on/off ramp?
@@ -45,10 +47,6 @@ void keyReleased() {
   } else if(key == 'f') {
     doFake = !doFake;
     println("doFake \t"+doFake);
-    
-  } else if(key == 't') {
-    doFPS = !doFPS;
-    println("doFPS \t"+doFPS);
     
   } else if(key == 'm') {
     doMask = !doMask;

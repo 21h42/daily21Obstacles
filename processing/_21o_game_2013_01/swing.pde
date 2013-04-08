@@ -40,7 +40,7 @@ class Swing {
   float fakeSine = 0;      // motorized Swing, angle
   float fakeAmp = 0.6;     // motorized Swing, amplitude
   float fakeVal = 0;
-  float fakeSpeed = 2.5/60.0;
+  float fakeSpeed = 2.0/60.f;    // speed to be divided by frameRate
   
   // glow
   int glowSteps = 5;
@@ -119,6 +119,10 @@ class Swing {
   }
   
   void drawSymbol() {
+    
+  }
+  
+  void render() {
     
   }
   
