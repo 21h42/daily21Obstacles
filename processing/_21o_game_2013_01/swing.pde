@@ -2,17 +2,16 @@
 
 color setColor(int t) {
   switch(t) {
-    case 1:  return color(97,255,247);  // too bright cyan
-    case 6:  return color(255,0,255);
-    case 2:  return color(120,85,240);
-    case 3:  return color(245,85,95);
-//    case 7:  return color(240,230,115);  // yellow
-//    case 8:  return color(255,90,115);
-    case 4:  return color(255,100,50);
-    case 5:  return color(50,255,50);
+    case 1:  return color(255,255,0);    // yellow
+    case 2:  return color(97,255,247);   // cyan
+    case 3:  return color(50,255,50);    // green
+    case 4:  return color(255,0,255);    // pink
+    
+    case 5:  return color(245,85,95);    // lachs
+    case 6:  return color(255,100,50);   // orange
+    case 7:  return color(255,0,0);      // red
+    case 8:  return color(120,85,240);   // pale violet
     case 9:  return color(255,0,0);
-    case 7:  return color(255,0,0);
-    case 8:  return color(255,255,0);
     case 11: return color(255);
     default: return color(random(255),random(255),random(255));
   }

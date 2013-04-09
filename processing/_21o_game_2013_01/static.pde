@@ -17,16 +17,6 @@ void createBuilding() {
   int th = 0;
   for(int i=0; i<6; i++) {
     rows[i] = new Row(i,getY(heightFloor[i]-0.02));
-    parts = floorParts[i].length / 2;
-    if(doFloors && parts>0) {
-    for(int j=0; j<parts; j++) {
-      sx = floorParts[i][j*2];
-      wx = floorParts[i][j*2+1]-floorParts[i][j*2];
-//      rect(getX(sx),getY(heightFloor[i]-floorH),getX(wx),getY(floorH*2));
-      th = (i==0) ? (int) (floorth/5) : (int) floorth;
-      walls.add(new Wall((int) getX(wx), th, (int) getX(sx), (int) getY(heightFloor[i]-fl) ,0));
-    }
-    }
   }
 
 }

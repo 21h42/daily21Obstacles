@@ -21,6 +21,11 @@ class Poly extends Swing {
   float xpos;
   float ypos;
   
+  
+  float[] historyY;      // history in array
+  int historyPointer = 0;
+  int historyMax = 25;   // maximum trail to save
+  
 
   Poly(int d, float xx, float yy, float sc, String on, boolean ff, int t, float mx, float my) {
     super(d, xx, yy);
@@ -52,12 +57,14 @@ class Poly extends Swing {
     stretch = (oname == "trap1") ? 1.5 : 1.0;
     c = setColor(t);
     scF = sc;
-    scd = full.width / getX(scF);
+    scd = outline.width / getX(scF);
     if(oname == "square") fadeSpeed = 0.01;
 
     createObjects();
     world.add(s);
     setFake(ff);
+    
+    historyY = new float[historyMax];
   }
   
   void setPolyOrigin() {
@@ -65,11 +72,11 @@ class Poly extends Swing {
     float minY = 1000;
     float maxX = 0;
     float maxY = 0;
-    for(int i=0; i<full.getChild(0).getVertexCount(); i++ ) {
-      float v1 = full.getChild(0).getVertexX(i);
+    for(int i=0; i<outline.getChild(0).getVertexCount(); i++ ) {
+      float v1 = outline.getChild(0).getVertexX(i);
       minX = min(minX,v1);
       maxX = max(maxX,v1);
-      float v2 = full.getChild(0).getVertexY(i);
+      float v2 = outline.getChild(0).getVertexY(i);
       minY = min(minY,v2);
       maxY = max(maxY,v2);
     }
@@ -119,6 +126,14 @@ class Poly extends Swing {
       }
     }
     
+    if(traceSwing) {
+      historyY[historyPointer] = ypos;
+      historyPointer++;
+      if(historyPointer>=historyMax) {
+        historyPointer = 0;
+      }
+    }
+    
     FName = s.getName();
     char first = FName.charAt(0);
     if(first=='X' || first=='P') {
@@ -163,13 +178,33 @@ class Poly extends Swing {
     else if(oname == "square" && fadeCounter>0) scale(1.0 + fadeCounter*5);
 //    shape(full,-(originx/scd),-(originy/scd),full.width/scd,full.height/scd);
 //    rect(-(originx/scd),-(originy/scd),full.width/scd,full.height/scd);
-    rect(-full.width/(2*scd),-full.height/(2*scd),full.width/scd,full.height/scd);
+    rect(-outline.width/(2*scd),-outline.height/(2*scd),outline.width/scd,outline.height/scd);
     popMatrix();
   }
   
   void render() {
-    float w = full.width/scd;
-    float h = full.height/scd;
+    float w = outline.width/scd;
+    float h = outline.height/scd;
+    
+    if(traceSwing) {
+      float traceHeight = ypos - historyY[historyPointer];
+      int segments = 15;
+      float traceH = traceHeight/ (float) segments;
+      float alphaSegment = 0.5/ (float) segments;
+      for(int i=0; i<segments; i++) {  // draw trace in 5 segments / alpha
+        gl.glColor4f(1.0, 1.0, 1.0, 0.5 - alphaSegment*i);
+        gl.glPushMatrix();
+        gl.glBegin(GL.GL_TRIANGLE_STRIP);
+        gl.glVertex3f(xpos-w/2.0, ypos - traceH*i, 0);
+        gl.glVertex3f(xpos+w/2.0, ypos - traceH*i, 0);
+        gl.glVertex3f(xpos-w/2.0, ypos - traceH*(i+1), 0);
+        gl.glVertex3f(xpos+w/2.0, ypos - traceH*(i+1), 0);
+        gl.glEnd();
+        gl.glPopMatrix();
+      }
+    }
+    
+    
     gl.glColor3f(red(displayColor)/255.0,green(displayColor)/255.0,blue(displayColor)/255.0);
     gl.glPushMatrix();
     gl.glTranslatef(xpos, ypos, 0);

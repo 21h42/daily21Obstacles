@@ -1,14 +1,15 @@
 
 void keyReleased() {
  
-  if(key > '0' && key < '7') {
+  if(key > '0' && key < '5') {
     int id = (int)(key-'0');
     println("shoot ball \t"+id);
-    if(id<=shooters.size()) {
-//      println("launch "+id);
-      Shooter h = (Shooter) shooters.get(id-1);
-      h.launch("1514555"+(int)random(0,9)+(int)random(0,9)+(int)random(0,9)+(int)random(0,9));
-    }
+    
+    Ball b = new Ball(ballcount++,getX(outlets[id]),0, id);
+    b.b.setVelocity(random(-200.0, 200.0), 300);
+    highscore += points_msg;
+    balls.add(b);
+    
   } else if(key == '8') {
     effects.sparkleRain();
     println("sparkle rain");
@@ -20,6 +21,10 @@ void keyReleased() {
   } else if(key =='a') {
     traceBall = !traceBall;
     println("traceBall \t"+traceBall);
+    
+  } else if(key == 't') {
+    traceSwing = !traceSwing;
+    println("traceSwing \t"+traceSwing);
     
   } else if(key == '9') {
     println("many balls");
@@ -99,6 +104,11 @@ void keyReleased() {
   } else if(key == 'k') {
     printMore = !printMore;
     println("printMore \t"+printMore);
+    
+  } else if(key == 'g') {
+    doGlow = !doGlow;
+    println("doGlow \t"+doGlow);
+    
   } else if(key == 'y') {
     logData("output");
   } else if(key =='q') {
@@ -110,7 +120,7 @@ void keyReleased() {
 }
 
 void mouseReleased() {
-  Ball b = new Ball(ballcount++,mouseX,mouseY,(int)(random(1,8)));
+  Ball b = new Ball(ballcount++,mouseX,mouseY,(int)(random(1,5)));
 //  b.setOriginalDiameter(0.020);
   b.setOriginalDiameter(random(0.01, 0.03));
   balls.add(b);
@@ -121,7 +131,7 @@ void mouseDragged() {
 }
 
 void addRandomBall() {
-  Ball b = new Ball(ballcount++,(int) random(100,width-100),0, (int) random(1,8));
+  Ball b = new Ball(ballcount++,(int) random(100,width-100),0, (int) random(1,5));
   b.b.setVelocity(random(-200.0, 200.0), 300);
   balls.add(b);
 }

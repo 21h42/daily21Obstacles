@@ -11,8 +11,8 @@ class Ball {
   FCircle b;          // physical body of ball
 
   float d;            // actual diameter (scaled to overall scale with getX())
-  float dm = 0.008;   // set diameter
-  float odm = 0.008;  // original diamter (before aging)
+  float dm = 0.02;   // set diameter
+  float odm = 0.02;  // original diamter (before aging)
   float scd = 2.0;    // scale divider
   float trace_d;
   float trace_dm = 0.002;
@@ -28,11 +28,15 @@ class Ball {
   ArrayList history;      // position history
   float[] historyXY;      // history in array (arraylist remove slowed fps down)
   int historyPointer = 0;
-  int historyMax = 200;   // maximum trail to save
+  int historyMax = 20;   // maximum trail to save
   float historyCounter = 0;  // counter, save new position when hit max
+  int historyCounts = 0;
   int historyCounterMax = 5;
 
   color c;
+  float color_r = 0;
+  float color_g = 0;
+  float color_b = 0;
 
   Ball(int ii, float x, float y, int no) {
     lane = no;
@@ -64,6 +68,9 @@ class Ball {
     trace_d = getX(trace_dm);
     lifetimer = 1.0;
     c = setColor(lane);
+    color_r = red(c)/255.0f;
+    color_g = green(c)/255.0f;
+    color_b = blue(c)/255.0f;
 
     b = new FCircle(d);
     b.setName("ball");
@@ -72,7 +79,7 @@ class Ball {
     b.setImageAlpha(lane/10.0);
     b.setPosition(x, y);
     b.setVelocity(random(-30.0, 30.0), 200);
-    b.setRestitution(0.9);
+    b.setRestitution(0.99);
     b.setDamping(0);
     b.setDensity(0.5);
     b.setDrawable(false);  // draw with drawSymbol() instead
@@ -82,6 +89,7 @@ class Ball {
     
     history = new ArrayList();
     historyXY = new float[historyMax*2];
+    for(int i=0; i<historyMax*2; i++) historyXY[i] = 0;
     historyPointer = 0;
   }
 
@@ -116,8 +124,13 @@ class Ball {
 //        }
         historyXY[historyPointer] = xpos;
         historyXY[historyPointer+1] = ypos;
+        if(historyCounts<historyMax) historyCounts++;
+//        if(printMore && id==1) println("historyCounts = "+historyCounts);
         historyPointer+=2;
-        if(historyPointer >= historyMax) historyPointer = 0;
+        if(historyPointer >= historyMax) {
+          historyPointer = 0;
+          
+        }
       }
     }
     
@@ -151,19 +164,19 @@ class Ball {
     ellipse(xpos,ypos,d,d);
   }
   
+  void renderHistory() {
+    gl.glColor3f(color_r,color_g,color_b);
+    int maxi = (historyCounts < 12) ? historyCounts : 12;
+    for(int i=0; i<maxi; i++) {  // historyCounts
+
+//      glEllipse(xpos+i,ypos+i, trace_d, trace_d);
+       glEllipse(historyXY[i*2], historyXY[i*2 + 1], trace_d, trace_d);
+    }
+  }
   // opengl drawing
   void render() {
     // red(c)*255,(int) green(c),(int) blue(c)
-    gl.glColor3f(red(c)/255.0,green(c)/255.0,blue(c)/255.0);
-    if(traceBall) {
-//      for(int i=0; i<history.size(); i++) {
-//        Vector2D v = (Vector2D) history.get(i);
-//        glEllipse(v._x, v._y, trace_d, trace_d);
-//      }
-      for(int i=0; i<historyMax; i++) {
-        glEllipse(historyXY[i*2], historyXY[i*2 + 1], trace_d, trace_d);
-      }
-    }
+    gl.glColor3f(color_r,color_g,color_b);
     glEllipse(xpos,ypos,d,d);
   }
   

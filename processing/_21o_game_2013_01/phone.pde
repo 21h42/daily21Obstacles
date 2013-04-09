@@ -77,15 +77,15 @@ class Phone extends Thread {
 
           if(printMore) println("PHONE INPUT: \t '"+phoneMsg+ "' \tfrom "+phoneUser+"\tinto lane "+phoneLane);
           if(phoneLane >= 1 && phoneLane <= 6) {
-            if(phoneLane<=shooters.size()) {
-              try {
-                Shooter h = (Shooter) shooters.get(phoneLane-1);
-                h.launch(phoneUser);
-              } catch (Exception e) {
-                logData("phone shooters.get("+phoneLane+")");
-                e.printStackTrace();
-              }
-            }
+//            if(phoneLane<=shooters.size()) {
+//              try {
+//                Shooter h = (Shooter) shooters.get(phoneLane-1);
+//                h.launch(phoneUser);
+//              } catch (Exception e) {
+//                logData("phone shooters.get("+phoneLane+")");
+//                e.printStackTrace();
+//              }
+//            }
           } else if(phoneLane == 7) {  // BIG
 //            addBigBall();
             FlagAddBigBall = true;
