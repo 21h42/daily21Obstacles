@@ -23,6 +23,7 @@ int swingListID;              // predefine swing shape for faster drawing
 boolean test = true;          // effects resolution, second screen placement
 // display fps, drawing of floor mask
 
+boolean processing = false;
 int theFrameRate = 1000;      // to be updated to current framerate
 
 // GLOBAL SETTINGS
@@ -60,6 +61,7 @@ boolean recording = false;
 MovieMaker mm;
 String moviename = "game_02.mov";
 boolean makeMovie = false;
+//Movie myMovie;
 
 // flags to triggers events
 boolean FlagAddBigBall = false;
@@ -71,8 +73,10 @@ boolean FlagAddManyBalls = false;
 FWorld world; 
 ArrayList swings;     // obstacles, controlled by physical swing data
 ArrayList balls;      // incoming user messages
+ArrayList targets;    // target coins
 ArrayList walls;      // building floors and walls
 int ballcount = 0;    
+int targetcount = 0;
 int maxcount = 5000;    // maxium number of all balls allowed, else > killing
 Effects effects;                      // sparkles, etc.
 float[] heightFloor = new float[6];  // positions of window areas
@@ -182,6 +186,10 @@ void setup() {
   Fisica.init(this);
   initWorld();
   effects = new Effects();
+  
+  
+//  myMovie = new Movie(this, "21O_MOUNTAIN_01.mov");
+//  myMovie.loop();
 
 
   if (doOSC) startOSC();
@@ -233,60 +241,81 @@ void draw() {
     endShape();
   }
   if (doBG) image(facade, 0, 0, sw, sh);  // sw,sh facade.width,facade.height
-  if (doEffects) for (int i=1; i<6; i++) rows[i].update();  // = render
-
-  if (balls.size() > maxcount) {
-    killBalls();
-  }
-
+  
+//  tint(255, 20);
+//  image(myMovie, 0, -200);
+  
   //  switchLanguage();
   drawLogos();                  // draw logos and all text information
   drawFramerate();
-
-  float step = advance(1/120.0);
-  try {
-    world.step(step);  
-    //    world.draw(this);        // no need, everything is drawn externally
-  } 
-  catch (AssertionError e) {
-    logData("AssertionError world.step()");
-    // e.printStackTrace();
-  } 
-  catch (Exception e) {
-    logData("world.step()");
-    e.printStackTrace();
-  }
-
-
-  if (doEffects) {
-    effects.update();
-    effects.drawRadiation();
-  }
-
-  //  for (int i=shooters.size()-1; i>= 0; i--) {
-  //    Shooter h = (Shooter) shooters.get(i);
-  //    h.update();
-  //    h.render();
-  //  }
-
-  for (int i=0; i<swings.size(); i++) {
-    Swing s = (Swing) swings.get(i);
-    s.update();
-    //    if(drawSwings) s.drawSymbol();
-  }
-  for (int i=balls.size()-1; i>= 0; i--) {
+  
+  
+  
+  if(processing) {
+  
+    if (doEffects) for (int i=1; i<6; i++) rows[i].update();  // = render
+  
+    if (balls.size() > maxcount) {
+      killBalls();
+    }
+  
+    float step = advance(1/120.0);
     try {
-      Ball b = (Ball) balls.get(i);
-      b.update();
-      //      b.drawSymbol();
-      if (b.dead()) balls.remove(i);
-    } 
-    catch (Exception e) {
-      logData("balls.get()");
+      world.step(step);  
+      //    world.draw(this);        // no need, everything is drawn externally
+    } catch (AssertionError e) {
+      logData("AssertionError world.step()");
+      // e.printStackTrace();
+    } catch (Exception e) {
+      logData("world.step()");
       e.printStackTrace();
+    }
+  
+  
+    if (doEffects) {
+      effects.update();
+      effects.drawRadiation();
+    }
+  
+    //  for (int i=shooters.size()-1; i>= 0; i--) {
+    //    Shooter h = (Shooter) shooters.get(i);
+    //    h.update();
+    //    h.render();
+    //  }
+  
+    for (int i=0; i<swings.size(); i++) {
+      Swing s = (Swing) swings.get(i);
+      s.update();
+      //    if(drawSwings) s.drawSymbol();
+    }
+    for (int i=balls.size()-1; i>= 0; i--) {
+      try {
+        Ball b = (Ball) balls.get(i);
+        b.update();
+        //      b.drawSymbol();
+        if (b.dead()) balls.remove(i);
+      } 
+      catch (Exception e) {
+        logData("balls.get()");
+        e.printStackTrace();
+      }
+    }
+    for (int i=targets.size()-1; i>= 0; i--) {
+      try {
+        Target t = (Target) targets.get(i);
+        t.update();
+        if(t.dead()) {
+          t.kill();
+          targets.remove(i);
+        }
+      } catch (Exception e) {
+        logData("targets.get()");
+        e.printStackTrace();
+      }
     }
   }
 
+  //////////////// RENDER ///////////////////////////////////////
 
   int millis1 = millis();
   gl = pgl.beginGL();            // OPENGL drawing
@@ -294,7 +323,7 @@ void draw() {
   for (int i=balls.size()-1; i>= 0; i--) {
     try {
       Ball b = (Ball) balls.get(i);
-      b.render();
+      b.renderHistory();
     } 
     catch (Exception e) {
       logData("balls.get()");
@@ -307,11 +336,21 @@ void draw() {
     Swing s = (Swing) swings.get(i);
     if (drawSwings) s.render();
   }
+  
+  for (int i=targets.size()-1; i>= 0; i--) {
+    try {
+      Target t = (Target) targets.get(i);
+      t.render();
+    } catch (Exception e) {
+      logData("targets.get()");
+      e.printStackTrace();
+    }
+  }
 
   for (int i=balls.size()-1; i>= 0; i--) {
     try {
       Ball b = (Ball) balls.get(i);
-      b.renderHistory();
+      b.render();
     } 
     catch (Exception e) {
       logData("balls.get()");
@@ -323,7 +362,7 @@ void draw() {
   millis2 = millis() - millis2;
 
   pgl.endGL();
-  if (printMore && millis2 > 100) println("opengl \t render: "+millis1+ "\t  renderHistory: "+millis2);
+  if (printMore && millis1 > 100) println("opengl \t render: "+millis2+ "\t  renderHistory: "+millis1);
 
   if (doEffects) {
     effects.drawSparkles();
@@ -331,6 +370,11 @@ void draw() {
 
   if (doBorder) drawBorder();
   if (doMask) drawMask();
+  
+  
+  
+  /////////////////////////////// end rendering ////////////////////
+  
   if (makeMovie && recording) mm.addFrame();
 
   if (frameCount%30==0) println(frameRate + "\t\t"+balls.size());
@@ -367,8 +411,10 @@ void initWorld() {
   swings = new ArrayList();
   balls = new ArrayList();
   walls = new ArrayList();
+  targets = new ArrayList();
 
   ballcount = 0;
+  targetcount = 0;
 
   createBuilding();                          // create walls and row effects
   if (doObjects) createSwings();
@@ -579,6 +625,19 @@ void contactStarted(FContact contact) {
         }
       }
     }
+  } else if(nam == "target" || nam == "ball") {
+    // target and balls can be first or second, as they are both added during the run
+    FBody b2 = contact.getBody1();
+    String nam2 = b2.getName();
+    if(nam.equals("target")) {
+      println("body 1 = target");
+      b1.setName("X-target");
+      highscore += points_target;
+    } else if(nam2.equals("target")) {
+      println("body 2 = target");
+      b2.setName("X-target");
+      highscore += points_target;
+    }
   }
 }
 
@@ -639,6 +698,10 @@ void killBalls() {
     b.kill();
     balls.remove(i);
   }
+}
+
+void movieEvent(Movie myMovie) {
+  myMovie.read();
 }
 
 void logData(String cause) {

@@ -1,7 +1,8 @@
 
 void keyReleased() {
- 
-  if(key > '0' && key < '5') {
+  if(keyCode == 32) {
+    processing = !processing;
+  } else if(key > '0' && key < '5') {
     int id = (int)(key-'0');
     println("shoot ball \t"+id);
     
@@ -21,6 +22,10 @@ void keyReleased() {
   } else if(key =='a') {
     traceBall = !traceBall;
     println("traceBall \t"+traceBall);
+    
+  } else if(key == 'c') {
+    addTargets();
+    println("addTargets");
     
   } else if(key == 't') {
     traceSwing = !traceSwing;
@@ -111,6 +116,10 @@ void keyReleased() {
     
   } else if(key == 'y') {
     logData("output");
+  } else if(key == 'z') {
+    highscore = 0;
+    println("cleared highscore");
+    
   } else if(key =='q') {
     Date d = new Date();
     DateFormat niceFormat = new SimpleDateFormat("yyyyMMdd-HHmmss");
@@ -136,6 +145,13 @@ void addRandomBall() {
   balls.add(b);
 }
 
+void addTargets() {
+
+  for(int i=0; i<19; i++) {
+    Target t = new Target(targetcount++, getX(0.075 + 0.047*i), getY(0.43));
+    targets.add(t);
+  }
+}
 
 void addBigBall() {
   Ball b = new Ball(ballcount++,(int) random(width/4,3*width/4),0, 11);

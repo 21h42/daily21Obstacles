@@ -190,9 +190,9 @@ class Poly extends Swing {
       float traceHeight = ypos - historyY[historyPointer];
       int segments = 15;
       float traceH = traceHeight/ (float) segments;
-      float alphaSegment = 0.5/ (float) segments;
+      float alphaSegment = 0.75/ (float) segments;
       for(int i=0; i<segments; i++) {  // draw trace in 5 segments / alpha
-        gl.glColor4f(1.0, 1.0, 1.0, 0.5 - alphaSegment*i);
+        gl.glColor4f(1.0, 1.0, 1.0, 0.75 - alphaSegment*i);
         gl.glPushMatrix();
         gl.glBegin(GL.GL_TRIANGLE_STRIP);
         gl.glVertex3f(xpos-w/2.0, ypos - traceH*i, 0);
