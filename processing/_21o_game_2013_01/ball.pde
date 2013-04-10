@@ -26,17 +26,17 @@ class Ball {
   
   
   ArrayList history;      // position history
-  float[] historyXY;      // history in array (arraylist remove slowed fps down)
-  int historyPointer = 0;
-  int historyMax = 20;   // maximum trail to save
+//  float[] historyXY;      // history in array form
+//  int historyPointer = 0;
   float historyCounter = 0;  // counter, save new position when hit max
-  int historyCounts = 0;
-  int historyCounterMax = 5;
+//  int historyCounts = 0;
+  int historyCounterMax = 5;  // save new history position every x 
 
   color c;
   float color_r = 0;
   float color_g = 0;
   float color_b = 0;
+  boolean blink = false;
 
   Ball(int ii, float x, float y, int no) {
     lane = no;
@@ -88,9 +88,9 @@ class Ball {
     world.add(b);    
     
     history = new ArrayList();
-    historyXY = new float[historyMax*2];
-    for(int i=0; i<historyMax*2; i++) historyXY[i] = 0;
-    historyPointer = 0;
+//    historyXY = new float[historyMax*2];
+//    for(int i=0; i<historyMax*2; i++) historyXY[i] = 0;
+//    historyPointer = 0;
   }
 
   void update() {
@@ -111,27 +111,26 @@ class Ball {
     xpos = b.getX();
     ypos = b.getY();
     
-    if(traceBall) {
+//    if(traceBall) {      // trace history even if not displayed
       historyCounter += advance(1.0);
       if(historyCounter >= historyCounterMax) {
         historyCounter = 0;
         
         // save current position to history
-//        Vector2D v = new Vector2D(xpos, ypos);
-//        history.add(v);
-//        if(history.size() > historyMax) {
-//          history.remove(0);
-//        }
-        historyXY[historyPointer] = xpos;
-        historyXY[historyPointer+1] = ypos;
-        if(historyCounts<historyMax) historyCounts++;
-//        if(printMore && id==1) println("historyCounts = "+historyCounts);
-        historyPointer+=2;
-        if(historyPointer >= historyMax) {
-          historyPointer = 0;
-          
+        Vector2D v = new Vector2D(xpos, ypos);
+        history.add(v);
+        while(history.size() > traceBallMax) {
+          history.remove(0);
         }
-      }
+//        historyXY[historyPointer] = xpos;
+//        historyXY[historyPointer+1] = ypos;
+//        if(historyCounts<historyMax) historyCounts++;
+////        if(printMore && id==1) println("historyCounts = "+historyCounts);
+//        historyPointer+=2;
+//        if(historyPointer >= historyMax) {
+//          historyPointer = 0;
+//        }
+//      }
     }
     
     String FName = b.getName();
@@ -149,6 +148,10 @@ class Ball {
           balls.add(nb);
         }
       }
+    } else if(FName.equals("T-ball")) {
+      if(printMore) println("T-ball update() ");
+      b.setName("ball");    // return name to standard name
+      blink = true;
     }
   }
   
@@ -165,17 +168,25 @@ class Ball {
   }
   
   void renderHistory() {
-    gl.glColor3f(color_r,color_g,color_b);
-    int maxi = (historyCounts < 12) ? historyCounts : 12;
-    for(int i=0; i<maxi; i++) {  // historyCounts
-
-//      glEllipse(xpos+i,ypos+i, trace_d, trace_d);
-       glEllipse(historyXY[i*2], historyXY[i*2 + 1], trace_d, trace_d);
+//    gl.glColor3f(color_r,color_g,color_b);
+//    int maxi = (historyCounts < 12) ? historyCounts : 12;
+//    for(int i=0; i<maxi; i++) {  // historyCounts
+//       glEllipse(historyXY[i*2], historyXY[i*2 + 1], trace_d, trace_d);
+//    }
+    for(int i=0; i<history.size(); i++) {
+       Vector2D v = (Vector2D) history.get(i);
+       float history_alpha = (float) i / history.size();
+       gl.glColor4f(color_r,color_g,color_b, history_alpha);
+       glEllipse(v._x, v._y, trace_d, trace_d);
     }
   }
   // opengl drawing
   void render() {
     // red(c)*255,(int) green(c),(int) blue(c)
+    if(blink) {
+      blink = false;
+      // add some action
+    }
     gl.glColor3f(color_r,color_g,color_b);
     glEllipse(xpos,ypos,d,d);
   }

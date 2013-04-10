@@ -76,7 +76,11 @@ class Phone extends Thread {
           }
 
           if(printMore) println("PHONE INPUT: \t '"+phoneMsg+ "' \tfrom "+phoneUser+"\tinto lane "+phoneLane);
-          if(phoneLane >= 1 && phoneLane <= 6) {
+          if(phoneLane >= 1 && phoneLane <= 4) {
+            Ball b = new Ball(ballcount++,getX(outlets[phoneLane]),0, phoneLane);
+            b.b.setVelocity(random(-200.0, 200.0), 300);
+            highscore += points_msg;
+            balls.add(b);
 //            if(phoneLane<=shooters.size()) {
 //              try {
 //                Shooter h = (Shooter) shooters.get(phoneLane-1);

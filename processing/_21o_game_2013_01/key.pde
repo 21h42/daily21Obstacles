@@ -104,8 +104,9 @@ void keyReleased() {
   } else if(key == 'p') {
     doPhone = !doPhone;
     println("doPhone \t"+doPhone);
-//    if(doPhone) phone.start();
-//    else phone.quit();
+    if(doPhone) phone.start();
+    else phone.quit();
+    
   } else if(key == 'k') {
     printMore = !printMore;
     println("printMore \t"+printMore);
@@ -145,13 +146,7 @@ void addRandomBall() {
   balls.add(b);
 }
 
-void addTargets() {
 
-  for(int i=0; i<19; i++) {
-    Target t = new Target(targetcount++, getX(0.075 + 0.047*i), getY(0.43));
-    targets.add(t);
-  }
-}
 
 void addBigBall() {
   Ball b = new Ball(ballcount++,(int) random(width/4,3*width/4),0, 11);

@@ -1,3 +1,13 @@
+void addTargets() {
+  for(int i=0; i<18; i++) {
+    // directly on top of swing: getX(0.075 + 0.047*i)
+    Target t = new Target(targetcount++, getX(0.0985 + 0.047*i), getY(0.43));
+    targets.add(t);
+  }
+}
+
+
+
 class Target {
   
   int id;
@@ -22,7 +32,7 @@ class Target {
     y = yy;
     w = getX(0.007);
     
-    b = new FCircle(getX(0.005));
+    b = new FCircle(getX(0.01));
     b.setName("target");
     b.setStaticBody(true);
     b.setSensor(true);        // not a physical body, just sensor (> contacts)
@@ -37,7 +47,10 @@ class Target {
   void update() {
     String FName = b.getName();
     char first = FName.charAt(0);
-    if(first=='X') active = false;
+    if(first=='X') {
+      if(printMore) println("X-target update() ");
+      active = false;
+    }
   }
   
   boolean dead() {

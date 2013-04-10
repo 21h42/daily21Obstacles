@@ -35,8 +35,9 @@ boolean doPhone = false;       // thread that jacks phone input PHP every 1000ms
 
 boolean doObjects = true;     // creates swing objects
 boolean doFake = true;        // fake swing movement from processing (not osc)
-boolean doEffects = false;     // sparkle and radiation
+boolean doEffects = true;     // sparkle and radiation
 boolean traceBall = true;      // leave trace of previous positions
+int traceBallMax = 20;        // how many history position to save
 boolean traceSwing = true;    // swing leaves glowing trace
 boolean doBorder = false;
 int border = 10;
@@ -61,13 +62,15 @@ boolean recording = false;
 MovieMaker mm;
 String moviename = "game_02.mov";
 boolean makeMovie = false;
-//Movie myMovie;
+Movie myMovie;
+boolean playMovie = false;
 
 // flags to triggers events
 boolean FlagAddBigBall = false;
 boolean FlagInitWorld = false;
 boolean FlagAddRandomBall = false;
 boolean FlagAddManyBalls = false;
+boolean FlagNoMoreTargets = false;
 
 // PHYSICS WORLD AND OBJECTS
 FWorld world; 
@@ -88,6 +91,7 @@ PFont apercubold24;
 PFont frank24;
 PFont frank48;
 PImage facade;        // image of building facade
+PImage tex;
 int bgImgNo = 2;      // 1...map
 
 Phone phone;          // class that checks php-files for new phone messages
@@ -96,7 +100,7 @@ float maskH = 0.024;       // 0.024;
 
 /// HIGHSCORE
 int highscore = 0;
-int points_collision = 20;
+int points_collision = 0;
 int points_msg = 250;
 int points_target = 100;
 
@@ -187,10 +191,10 @@ void setup() {
   initWorld();
   effects = new Effects();
   
-  
-//  myMovie = new Movie(this, "21O_MOUNTAIN_01.mov");
-//  myMovie.loop();
-
+  if(playMovie) {
+    myMovie = new Movie(this, "21O_MOUNTAIN_01.mov");
+    myMovie.loop();
+  }
 
   if (doOSC) startOSC();
 
@@ -228,32 +232,10 @@ void draw() {
   //  if(printMore) println("checkFlags");
   checkFlags();
 
-  background(bgColor);
-  // gradient bg
-  if (!doBG) {
-    beginShape();
-    fill(bgColor);
-    vertex(0, 0);
-    vertex(width, 0);
-    fill(55, 55, 55);
-    vertex(width, height);
-    vertex(0, height);
-    endShape();
-  }
-  if (doBG) image(facade, 0, 0, sw, sh);  // sw,sh facade.width,facade.height
-  
-//  tint(255, 20);
-//  image(myMovie, 0, -200);
-  
-  //  switchLanguage();
-  drawLogos();                  // draw logos and all text information
-  drawFramerate();
-  
-  
   
   if(processing) {
   
-    if (doEffects) for (int i=1; i<6; i++) rows[i].update();  // = render
+//    if (doEffects) for (int i=1; i<6; i++) rows[i].update();  // = render
   
     if (balls.size() > maxcount) {
       killBalls();
@@ -274,7 +256,6 @@ void draw() {
   
     if (doEffects) {
       effects.update();
-      effects.drawRadiation();
     }
   
     //  for (int i=shooters.size()-1; i>= 0; i--) {
@@ -293,7 +274,10 @@ void draw() {
         Ball b = (Ball) balls.get(i);
         b.update();
         //      b.drawSymbol();
-        if (b.dead()) balls.remove(i);
+        if (b.dead()) {
+          balls.remove(i);
+          setTraceLength();
+        }
       } 
       catch (Exception e) {
         logData("balls.get()");
@@ -307,6 +291,7 @@ void draw() {
         if(t.dead()) {
           t.kill();
           targets.remove(i);
+          if(targets.size() < 1) FlagNoMoreTargets = true;
         }
       } catch (Exception e) {
         logData("targets.get()");
@@ -316,14 +301,30 @@ void draw() {
   }
 
   //////////////// RENDER ///////////////////////////////////////
+  background(bgColor);
+  if (doBG) {
+//    image(facade, 0, 0, sw, sh);  // sw,sh facade.width,facade.height
+  }
+  
+  bgTexture();
+  
+  //  switchLanguage();
+  drawLogos();                  // draw logos and all text information
+  drawFramerate();
+  
+  if (doEffects) {
+      effects.drawRadiation();
+  }
 
   int millis1 = millis();
   gl = pgl.beginGL();            // OPENGL drawing
+  
+  
 
   for (int i=balls.size()-1; i>= 0; i--) {
     try {
       Ball b = (Ball) balls.get(i);
-      b.renderHistory();
+      if(traceBall) b.renderHistory();
     } 
     catch (Exception e) {
       logData("balls.get()");
@@ -381,6 +382,26 @@ void draw() {
 }
 
 
+void bgTexture() {
+  
+//  gl.glColor3f(1.0, 1.0, 0.0);
+//  
+  textureMode(NORMALIZED);
+  noFill();
+  noStroke();
+  
+  beginShape();
+  if(playMovie) {
+    texture(myMovie);
+  } else {
+    texture(facade);
+  }
+  vertex(0, 0, 0, 0);
+  vertex(width, 0, 1, 0);
+  vertex(width, height, 1, 1);
+  vertex(0, height, 0, 1);
+  endShape(CLOSE);
+}
 
 // --------------------------------------------------------------------- //
 ////////////////////  PROPORTIONS    /////////////////////////////////
@@ -442,20 +463,8 @@ void switchLanguage() {
 }
 
 void loadBG() {
-  //  int bgImgW = sw;
-  //  if(bgImgW != 1920 && bgImgW != 2688 && bgImgW != 1400) {
-  //    bgImgW = 1400;
-  //  }
-  //  String filetype = (bgImgW == 1400) ? ".png" : ".jpg";
-  switch(bgImgNo) {
-  case 1: 
-    facade = loadImage("map_1400.png");
-    break;
-  case 2: 
-    //    facade = loadImage("bluegradient-01.png");
-    facade = loadImage("background.jpg");
-    break;
-  }
+//  tex = loadImage("map_1400.png");
+  facade = loadImage("background.jpg");
 }
 
 
@@ -613,31 +622,39 @@ void contactStarted(FContact contact) {
         // set swing name, to color it to ball/lane color in next poly.update()
         b1.setName("X"+alane+nam);
       }
-
+    }
+  } else if(nam == "target" || nam == "ball") {
+    // target and balls can be first or second, as they are both added during the run
+    FBody b2 = contact.getBody2();
+    FBody ball = b2;
+    FBody target = b2;
+    String nam2 = b2.getName();
+    boolean targetHit = false;
+    if(nam.equals("target")) {
+      println("body 1 = target");
+      target = b1;
+      targetHit = true;
+    } else if(nam2.equals("target")) {
+      println("body 2 = target");
+      ball = b1;
+      targetHit = true;
+    }
+    if(targetHit) {
+      target.setName("X-target");
+      ball.setName("T-ball");
+      highscore += points_target;
       if (doEffects) {
         effects.addRadiation(contact.getX(), contact.getY(), ball.getFillColor());
         effects.addSparkles(contact.getX(), contact.getY());
 
-        // get Height, translate to row
-        int theRow = (int) ((contact.getY()/(float)sh)*8) - 3;
-        if (random(0, 100) < 5) {
-          if (theRow>0 && theRow<=6) rows[theRow].animate();
-        }
+      // get Height, translate to row
+//        int theRow = (int) ((contact.getY()/(float)sh)*8) - 3;
+//        if (random(0, 100) < 5) {
+//          if (theRow>0 && theRow<=6) rows[theRow].animate();
+//        }
       }
     }
-  } else if(nam == "target" || nam == "ball") {
-    // target and balls can be first or second, as they are both added during the run
-    FBody b2 = contact.getBody1();
-    String nam2 = b2.getName();
-    if(nam.equals("target")) {
-      println("body 1 = target");
-      b1.setName("X-target");
-      highscore += points_target;
-    } else if(nam2.equals("target")) {
-      println("body 2 = target");
-      b2.setName("X-target");
-      highscore += points_target;
-    }
+    
   }
 }
 
@@ -660,6 +677,7 @@ void checkFlags() {
   if (FlagAddManyBalls) {
     for (int i=0; i<100; i++) addRandomBall();
     FlagAddManyBalls = false;
+    setTraceLength();
   }
   if (FlagInitWorld) {
     initWorld();
@@ -668,11 +686,29 @@ void checkFlags() {
   if (FlagAddRandomBall) {
     addRandomBall();
     FlagAddRandomBall = false;
+    setTraceLength();
   } 
   if (FlagAddBigBall) {
     addBigBall();
     FlagAddBigBall = false;
   }
+  if (FlagNoMoreTargets) {
+    if(printMore) println("All Targets are hit!");
+    FlagNoMoreTargets = false;
+  }
+}
+
+// make trace length inverse proportional to number of active balls
+void setTraceLength() {
+  int no_balls = balls.size();
+  if(no_balls == 0) traceBallMax = 20;
+  else if(no_balls >= 33) traceBallMax = 3;
+  else {
+//    traceBallMax = 3 + 96 - (int) map(no_balls, 1, 99, 0, 96);
+       // 1 ..100   2..50  3..33  4..25  5..20  6..17  10..10
+       traceBallMax = 100/no_balls;
+  }
+  if(printMore) println("setTraceLength to \t"+ traceBallMax + " \t balls "+no_balls);
 }
 
 // change value based on current framerate
@@ -698,6 +734,7 @@ void killBalls() {
     b.kill();
     balls.remove(i);
   }
+  setTraceLength();
 }
 
 void movieEvent(Movie myMovie) {
