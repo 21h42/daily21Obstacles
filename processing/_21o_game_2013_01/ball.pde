@@ -5,7 +5,7 @@ class Ball {
   int id;
 
   float lifetimer;
-  float aging = 0.0002;
+  float aging = 1.0 / (60.0 * 60);  // lives 60 seconds
   boolean shrink = true;      // shrink diameter based on age
 
   FCircle b;          // physical body of ball
@@ -15,7 +15,7 @@ class Ball {
   float odm = 0.02;  // original diamter (before aging)
   float scd = 2.0;    // scale divider
   float trace_d;
-  float trace_dm = 0.002;
+  float trace_dm = 0.003;
   
   int lane = 1;       // which lane it was launched at, effects color
 
@@ -31,6 +31,8 @@ class Ball {
   float historyCounter = 0;  // counter, save new position when hit max
 //  int historyCounts = 0;
   int historyCounterMax = 5;  // save new history position every x 
+  boolean historyEqual = true;
+  float equalStep = getX(0.01);
 
   color c;
   float color_r = 0;
@@ -112,26 +114,28 @@ class Ball {
     ypos = b.getY();
     
 //    if(traceBall) {      // trace history even if not displayed
+    Vector2D v = new Vector2D(xpos, ypos);
+    if(historyEqual) {
+      if(history.size() < 1) {
+        history.add(v);    // add position, if first time!
+      } else {
+        // get last position in history
+        Vector2D last = (Vector2D) history.get(history.size()-1);
+        float distance = sqrt( sq(v._x-last._x) + sq(v._y-last._y) );
+        if(distance > equalStep) history.add(v);
+      }
+    } else {
       historyCounter += advance(1.0);
       if(historyCounter >= historyCounterMax) {
         historyCounter = 0;
-        
         // save current position to history
-        Vector2D v = new Vector2D(xpos, ypos);
         history.add(v);
-        while(history.size() > traceBallMax) {
-          history.remove(0);
-        }
-//        historyXY[historyPointer] = xpos;
-//        historyXY[historyPointer+1] = ypos;
-//        if(historyCounts<historyMax) historyCounts++;
-////        if(printMore && id==1) println("historyCounts = "+historyCounts);
-//        historyPointer+=2;
-//        if(historyPointer >= historyMax) {
-//          historyPointer = 0;
-//        }
-//      }
+      }
     }
+    while(history.size() > traceBallMax) {
+       history.remove(0);
+    }
+      
     
     String FName = b.getName();
     if(FName.equals("clone")) {
@@ -149,7 +153,6 @@ class Ball {
         }
       }
     } else if(FName.equals("T-ball")) {
-      if(printMore) println("T-ball update() ");
       b.setName("ball");    // return name to standard name
       blink = true;
     }
@@ -176,6 +179,7 @@ class Ball {
     for(int i=0; i<history.size(); i++) {
        Vector2D v = (Vector2D) history.get(i);
        float history_alpha = (float) i / history.size();
+       history_alpha = history_alpha < 0.2 ? history_alpha*5 : 1.0;  // only fade last 20%
        gl.glColor4f(color_r,color_g,color_b, history_alpha);
        glEllipse(v._x, v._y, trace_d, trace_d);
     }

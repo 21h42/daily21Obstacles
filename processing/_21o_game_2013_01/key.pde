@@ -10,6 +10,7 @@ void keyReleased() {
     b.b.setVelocity(random(-200.0, 200.0), 300);
     highscore += points_msg;
     balls.add(b);
+    setTraceLength();
     
   } else if(key == '8') {
     effects.sparkleRain();
@@ -40,11 +41,8 @@ void keyReleased() {
     println("drawSwings \t"+drawSwings);
     
   } else if(key == 'w') {
-    // turn on/off ramp?
-    for(int i=0; i<walls.size(); i++) {
-      Wall w = (Wall) walls.get(i);
-      if(!w.wall.getName().equals("ramp")) w.wall.setDrawable(!w.wall.isDrawable());
-    }
+    targetMove = !targetMove;
+    println("targetMove \t"+targetMove);
     
   } else if(key == 'v') {
     printInput = !printInput;
@@ -80,8 +78,8 @@ void keyReleased() {
     FlagInitWorld = true;
     
   } else if(key == 'i') {
-    doBG = !doBG;
-    println("doBG \t"+doBG);
+    idle = !idle;
+    println("idle \t"+idle);
     
   } else if(key == 'j') {
     bgImgNo++;

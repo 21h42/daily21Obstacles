@@ -26,18 +26,19 @@ void oscEvent(OscMessage msg) {
       
       
     } else if(msg.checkAddrPattern("/var")) {      // VAR
-//      if(id < swings.size()) {
-//        Swing s = (Swing) swings.get(id);
-//        int av = msg.get(1).intValue();
-//        int sv = msg.get(2).intValue();
+      if(id < swings.size()) {
+        Swing s = (Swing) swings.get(id);
+        int av = msg.get(1).intValue();
+        int sv = msg.get(2).intValue();
+        int cv = msg.get(3).intValue();
 ////        s.setActive(av == 1);  
-//        if(printInput) println("osc: "+id+ " VAR: "+av+" / "+sv);
-//      }
-  //    s.sync = msg.get(2).intValue();
+        s.sync = (sv==0) ? false : true;
+        if(printInput) println("osc: "+id+ " VAR: "+av+" / "+sv + " / "+cv);
+      }
+  //    
       
     } else if(msg.checkAddrPattern("/amp")) {      // AMPLITUDE
       int val = msg.get(1).intValue();
-      if(id >= 18 && id <=20) id-=3;
       if(id >= 0 && id < swings.size()) {
           try {
             Swing s = (Swing) swings.get(id);

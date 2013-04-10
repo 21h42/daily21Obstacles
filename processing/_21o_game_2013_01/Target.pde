@@ -17,6 +17,7 @@ class Target {
   FCircle b;          // physical body of target 
   
   float x;                // position
+  float ox;              // original x position (changed by target-sine-movement)
   float y;  
   float w;            // size
   
@@ -28,7 +29,7 @@ class Target {
   }
   
   void init(float xx, float yy) {
-    x = xx;
+    ox = x = xx;
     y = yy;
     w = getX(0.007);
     
@@ -48,8 +49,13 @@ class Target {
     String FName = b.getName();
     char first = FName.charAt(0);
     if(first=='X') {
-      if(printMore) println("X-target update() ");
       active = false;
+    }
+    try {
+      x = ox + targetMoveX;
+      b.setPosition(x,y);
+    } catch (AssertionError e) {
+      logData("Target.update setPosition()");
     }
   }
   

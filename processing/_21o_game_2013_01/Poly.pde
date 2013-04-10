@@ -55,7 +55,7 @@ class Poly extends Swing {
     ypos = y+updateValue*movey;
     
     stretch = (oname == "trap1") ? 1.5 : 1.0;
-    c = setColor(t);
+    oc = setColor(t);
     scF = sc;
     scd = outline.width / getX(scF);
     if(oname == "square") fadeSpeed = 0.01;
@@ -127,7 +127,7 @@ class Poly extends Swing {
     }
     
     if(traceSwing) {
-      historyY[historyPointer] = ypos;
+      historyY[historyPointer] = updateValue*movey;
       historyPointer++;
       if(historyPointer>=historyMax) {
         historyPointer = 0;
@@ -187,12 +187,16 @@ class Poly extends Swing {
     float h = outline.height/scd;
     
     if(traceSwing) {
-      float traceHeight = ypos - historyY[historyPointer];
+      float traceHeight = ypos - (y + (historyY[historyPointer]));
       int segments = 15;
       float traceH = traceHeight/ (float) segments;
       float alphaSegment = 0.75/ (float) segments;
       for(int i=0; i<segments; i++) {  // draw trace in 5 segments / alpha
-        gl.glColor4f(1.0, 1.0, 1.0, 0.75 - alphaSegment*i);
+        if(sync) {
+          gl.glColor4f(red(oc)/255.0,green(oc)/255.0,blue(oc)/255.0, 0.75 - alphaSegment*i);
+        } else {
+          gl.glColor4f(1.0, 1.0, 1.0, 0.75 - alphaSegment*i);
+        }
         gl.glPushMatrix();
         gl.glBegin(GL.GL_TRIANGLE_STRIP);
         gl.glVertex3f(xpos-w/2.0, ypos - traceH*i, 0);
@@ -204,8 +208,11 @@ class Poly extends Swing {
       }
     }
     
-    
-    gl.glColor3f(red(displayColor)/255.0,green(displayColor)/255.0,blue(displayColor)/255.0);
+    if(sync) {
+      gl.glColor3f(red(oc)/255.0,green(oc)/255.0,blue(oc)/255.0);
+    } else {
+      gl.glColor3f(red(displayColor)/255.0,green(displayColor)/255.0,blue(displayColor)/255.0);
+    }
     gl.glPushMatrix();
     gl.glTranslatef(xpos, ypos, 0);
 //    gl.glRotatef(s.getRotation());

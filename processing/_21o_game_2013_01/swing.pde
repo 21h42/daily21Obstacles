@@ -24,6 +24,7 @@ class Swing {
   int id;
   
   boolean active;     // active or not. depending on swing. difference in display?
+  boolean sync = false;
   boolean fake;       // faked swing motion
   String FName;      // object name
   
@@ -48,6 +49,7 @@ class Swing {
   
   color c;
   color oc;
+  color white;
   color displayColor;
   float fadeCounter;
   float fadeSpeed = 0.03;
@@ -57,9 +59,10 @@ class Swing {
     x = xx;
     y = yy;
     fakeSine = random(0,2*PI);
-    fakeAmp = random(0.05,1.0);
-    oc = color(255);
-    displayColor = oc;
+    fakeAmp = random(0.05,1.3);
+    white = color(255);
+    oc = setColor(1);
+    displayColor = white;
     fadeCounter = 0;
   }
   
@@ -73,7 +76,7 @@ class Swing {
     if(fadeCounter > 0) {
       fadeCounter -= advance(fadeSpeed);
       if(fadeCounter<0) fadeCounter = 0;
-      displayColor = lerpColor(c,oc, 1.0-fadeCounter);
+      displayColor = lerpColor(c,white, 1.0-fadeCounter);
     }
     if(fake && doFake) fakeStep();
   }

@@ -5,14 +5,20 @@
  *
  */
 
-
 import processing.opengl.*;  
 import javax.media.opengl.*;
 import processing.video.*;     // only for saving out videos
-
 // Physics engine
 // http://www.ricardmarxer.com/fisica/reference/index.html
-import fisica.*;      
+import fisica.*;     
+
+
+
+boolean test = false;          // effects resolution, second screen placement
+// display fps, drawing of floor mask
+
+
+
 
 // OpenGL
 PGraphicsOpenGL pgl; 
@@ -20,21 +26,21 @@ GL gl;
 int circleListID;             // predefine circle points for faster drawing
 int swingListID;              // predefine swing shape for faster drawing
 
-boolean test = true;          // effects resolution, second screen placement
-// display fps, drawing of floor mask
 
-boolean processing = false;
+boolean idle = false;
+boolean processing = true;
 int theFrameRate = 1000;      // to be updated to current framerate
 
 // GLOBAL SETTINGS
 int sw = test ? 1344 : 2688;  // 2688 (x769), 1920, 1344
+//int sw = 2688;
 int sh;
 
-boolean doOSC = false;
-boolean doPhone = false;       // thread that jacks phone input PHP every 1000ms
+boolean doOSC = true; // test ? false : true;
+boolean doPhone = test ? false : true;       // thread that jacks phone input PHP every 1000ms
 
 boolean doObjects = true;     // creates swing objects
-boolean doFake = true;        // fake swing movement from processing (not osc)
+boolean doFake = false; // test ? true : false;        // fake swing movement from processing (not osc)
 boolean doEffects = true;     // sparkle and radiation
 boolean traceBall = true;      // leave trace of previous positions
 int traceBallMax = 20;        // how many history position to save
@@ -80,6 +86,12 @@ ArrayList targets;    // target coins
 ArrayList walls;      // building floors and walls
 int ballcount = 0;    
 int targetcount = 0;
+boolean targetMove = true;
+float targetMoveX = 0;
+float targetMoveSine = 0;
+float targetMoveSpeed = 0.01;
+float targetMoveAmp = 50.;
+
 int maxcount = 5000;    // maxium number of all balls allowed, else > killing
 Effects effects;                      // sparkles, etc.
 float[] heightFloor = new float[6];  // positions of window areas
@@ -91,7 +103,12 @@ PFont apercubold24;
 PFont frank24;
 PFont frank48;
 PImage facade;        // image of building facade
-PImage tex;
+PImage flash;
+PImage triumph;
+float flashCounter = 0;
+int flashCounterMax = 100;
+float triumphCounter = 0;
+int triumphCounterMax = 150;
 int bgImgNo = 2;      // 1...map
 
 Phone phone;          // class that checks php-files for new phone messages
@@ -103,9 +120,15 @@ int highscore = 0;
 int points_collision = 0;
 int points_msg = 250;
 int points_target = 100;
+int highscoreGoal = 10000;
+int highscoreGoalStep = 10000;
 
 float outlets[] = { 
   0, 0.17, 0.45, 0.53, 0.89
+};
+
+int swingColor[] = {
+  2, 2, 4,    1, 3, 4,    2, 3, 4,    4, 1, 1,    2, 4, 2,    2, 3, 3,    1, 2, 2 
 };
 
 // create 21 swings in a row, all placed center, and moving up+down
@@ -114,7 +137,7 @@ void createSwings() {
   for (int i=0; i<21; i++) {
     // POLY OBJECTS moving
     // no,   x,             y,       scale,   type, fakemoving, color, movex, movey
-    swings.add(new Poly(n++, getX(0.03+i*0.047), getY(0.56), 0.04, "block", doFake, i%5, 0.0, 0.085));
+    swings.add(new Poly(n++, getX(0.03+i*0.047), getY(0.56), 0.04, "block", doFake, swingColor[i], 0.0, 0.07));
   }
 }
 
@@ -127,23 +150,271 @@ void setup() {
   size(sw, sh, OPENGL );   // try // JAVA2D // OPENGL // P3D // P2D 
   println("screen size \t"+sw+" / "+sh);
 
-  smooth();
+  smooth();    // working? ??
 
+  createOpenGLData();
+  
+  if (makeMovie) mm = new MovieMaker(this, width, height, moviename, 25, MovieMaker.ANIMATION, MovieMaker.BEST);
+
+  phone = new Phone(1000);    // checks every 1000ms
+  if (doPhone) phone.start();
+
+  apercu24 = loadFont("Apercu-24.vlw");
+  apercubold24 = loadFont("Apercu-Bold-24.vlw");
+  frank24 = loadFont("FrankfurterMediumPlain-24.vlw");
+  frank48 = loadFont("FrankfurterPlain-48.vlw");
+  textFont(apercu24, 12);
+  loadBG();
+
+  Fisica.init(this);
+  initWorld();
+  effects = new Effects();
+  
+  if(playMovie) {
+    myMovie = new Movie(this, "21O_MOUNTAIN_01.mov");
+    myMovie.loop();
+  }
+
+  if (doOSC) startOSC();
+
+  // set location of undecorated frame on second monitor
+  if (doSecondScreen) frame.setLocation(1000, 0);
+}
+
+public void init() {
+  // make frame not displayable
+  if (doSecondScreen) frame.removeNotify();
+
+  // not sure why
+  if (doSecondScreen) frame.dispose();
+
+  // sets the window mode to undecorated 
+  if (doSecondScreen) frame.setUndecorated(true);
+
+  // add notify again
+  if (doSecondScreen) frame.addNotify();
+  super.init();
+}
+
+
+void draw() {
+
+  try {
+    theFrameRate = (int) frameRate;
+  } catch (Exception e) {
+    theFrameRate = 60;
+    logData("frameRate");
+    e.printStackTrace();
+  }
+
+  // highscore events
+  if(highscore >= highscoreGoal) {
+    highscoreGoal += highscoreGoalStep;
+    triumphCounter = triumphCounterMax;
+  }
+
+  ///////////////// UPDATE step /////////////////////////////
+  
+  
+  if(!idle && processing && !(triumphCounter>0)) {
+    
+    checkFlags();      // check for ball-add-kill events
+    
+//    if (doEffects) for (int i=1; i<6; i++) rows[i].update();  // = render
+  
+    if (balls.size() > maxcount) {
+      killBalls();
+    }
+  
+    float step = advance(1/120.0);
+    try {
+      world.step(step);  
+      //    world.draw(this);        // no need, everything is drawn externally
+    } catch (AssertionError e) {
+      logData("AssertionError world.step()");
+      // e.printStackTrace();
+    } catch (Exception e) {
+      logData("world.step()");
+      e.printStackTrace();
+    }
+  
+    if (doEffects) {
+      effects.update();      // sparkles and radiation update
+    }
+  
+    //  for (int i=shooters.size()-1; i>= 0; i--) {
+    //    Shooter h = (Shooter) shooters.get(i);
+    //    h.update();
+    //    h.render();
+    //  }
+  
+    for (int i=0; i<swings.size(); i++) {
+      Swing s = (Swing) swings.get(i);
+      s.update();
+    }
+    for (int i=balls.size()-1; i>= 0; i--) {
+      try {
+        Ball b = (Ball) balls.get(i);
+        b.update();
+        //      b.drawSymbol();
+        if (b.dead()) {
+          balls.remove(i);
+          setTraceLength();
+        }
+      } catch (Exception e) {
+        logData("balls.get()");
+        e.printStackTrace();
+      }
+    }
+    
+    if(targetMove) {
+      targetMoveSine+=advance(targetMoveSpeed);
+      targetMoveX = sin(targetMoveSine)*targetMoveAmp; 
+    }
+    for (int i=targets.size()-1; i>= 0; i--) {
+      try {
+        Target t = (Target) targets.get(i);
+        t.update();
+        if(t.dead()) {
+          t.kill();
+          targets.remove(i);
+          if(targets.size() < 1) FlagNoMoreTargets = true;
+        }
+      } catch (Exception e) {
+        logData("targets.get()");
+        e.printStackTrace();
+      }
+    }
+  }
+
+  //////////////// RENDER step ///////////////////////////////////////
+  background(bgColor);
+  tint(255,255);
+  if (doBG) image(facade, 0, 0, sw, sh);  // sw,sh facade.width,facade.height
+  
+  //  switchLanguage();
+  drawLogo();                  // draw logos and all text information
+  drawInstructions();
+  drawOutlets();
+  drawFramerate();
+  
+  if(idle) {
+    
+    drawIdleScreen();
+    
+  } else {
+    
+    drawHighscore();
+  
+    if(triumphCounter > 0) {
+      triumphCounter -= advance(1.0);
+      tint(255, 255 * triumphCounter/triumphCounterMax);
+      image(triumph, 0, 0, sw, sh);
+    } else if(flashCounter > 0) {
+      flashCounter-= advance(1.0);
+      if(flashCounter > flashCounterMax/2) {
+        tint(255, 255 * (flashCounter-flashCounterMax/2)/(flashCounterMax/2));
+        image(flash, 0, 0, sw, sh);
+      }
+      if(flashCounter < 0) addTargets();  // done flashing, add new targets
+    }
+  //  if(doBG) bgTexture();
+
+    if (doEffects) {
+        effects.drawRadiation();
+    }
+  
+    int millis1 = millis();
+    
+    gl = pgl.beginGL();            // OPENGL drawing
+
+    for (int i=balls.size()-1; i>= 0; i--) {
+      try {
+        Ball b = (Ball) balls.get(i);
+        if(traceBall) b.renderHistory();
+      } 
+      catch (Exception e) {
+        logData("balls.get()");
+        e.printStackTrace();
+      }
+    }
+    int millis2 = millis();
+
+    for (int i=0; i<swings.size(); i++) {
+      Swing s = (Swing) swings.get(i);
+      if (drawSwings) s.render();
+    }
+  
+    for (int i=targets.size()-1; i>= 0; i--) {
+      try {
+        Target t = (Target) targets.get(i);
+        t.render();
+      } catch (Exception e) {
+        logData("targets.get()");
+        e.printStackTrace();
+      }
+    }
+
+    for (int i=balls.size()-1; i>= 0; i--) {
+      try {
+        Ball b = (Ball) balls.get(i);
+        b.render();
+      } 
+      catch (Exception e) {
+        logData("balls.get()");
+        e.printStackTrace();
+      }
+    }
+
+    millis1 = millis2 - millis1;
+    millis2 = millis() - millis2;
+  
+    pgl.endGL();
+    if (printMore && millis1 > 100) println("opengl \t render: "+millis2+ "\t  renderHistory: "+millis1);
+
+    if (doEffects) {
+      effects.drawSparkles();
+    }
+
+  }
+  
+  if (doBorder) drawBorder();
+  if (doMask) drawMask();
+
+  /////////////////////////////// end rendering ////////////////////
+  
+  if (makeMovie && recording) mm.addFrame();
+
+  if (frameCount%30==0) println(frameRate + "\t\t"+balls.size());
+}
+
+
+void bgTexture() {
+  
+//  gl.glColor3f(1.0, 1.0, 0.0);
+//  
+  textureMode(NORMALIZED);
+  noFill();
+  noStroke();
+  
+  beginShape();
+  if(playMovie) {
+    texture(myMovie);
+  } else {
+    texture(facade);
+  }
+  vertex(0, 0, 0, 0);
+  vertex(width, 0, 1, 0);
+  vertex(width, height, 1, 1);
+  vertex(0, height, 0, 1);
+  endShape(CLOSE);
+}
+
+
+void createOpenGLData() {
   // OPENGL
   pgl = (PGraphicsOpenGL)g;
   gl = pgl.beginGL();
-
-  //  gl.glDisable(GL.GL_DEPTH_TEST);
-  //  gl.glEnable(GL.GL_BLEND);
-  //  gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE);
-  //  gl.glDisable(GL.GL_BLEND); 
-
-  //  gl.glHint (gl.GL_POLYGON_SMOOTH_HINT, gl.GL_NICEST);
-  //  gl.glEnable(gl.GL_LINE_SMOOTH);
-  //  gl.glEnable(GL.GL_POLYGON_SMOOTH);
-  //  hint(DISABLE_OPENGL_2X_SMOOTH);
-  //  hint(ENABLE_OPENGL_4X_SMOOTH);
-
   circleListID = gl.glGenLists(1);             // generate circle geometry
   gl.glNewList(circleListID, GL.GL_COMPILE);    
   gl.glBegin(GL.GL_TRIANGLE_FAN);
@@ -175,232 +446,6 @@ void setup() {
   gl.glEndList();
   pgl.endGL();
 
-  if (makeMovie) mm = new MovieMaker(this, width, height, moviename, 25, MovieMaker.ANIMATION, MovieMaker.BEST);
-
-  phone = new Phone(1000);    // checks every 1000ms
-  if (doPhone) phone.start();
-
-  apercu24 = loadFont("Apercu-24.vlw");
-  apercubold24 = loadFont("Apercu-Bold-24.vlw");
-  frank24 = loadFont("FrankfurterMediumPlain-24.vlw");
-  frank48 = loadFont("FrankfurterPlain-48.vlw");
-  textFont(apercu24, 12);
-  loadBG();
-
-  Fisica.init(this);
-  initWorld();
-  effects = new Effects();
-  
-  if(playMovie) {
-    myMovie = new Movie(this, "21O_MOUNTAIN_01.mov");
-    myMovie.loop();
-  }
-
-  if (doOSC) startOSC();
-
-  // set location of undecorated frame on second monitor
-  if (doSecondScreen) frame.setLocation(1440, 0);
-}
-
-public void init() {
-  // make frame not displayable
-  if (doSecondScreen) frame.removeNotify();
-
-  // not sure why
-  if (doSecondScreen) frame.dispose();
-
-  // sets the window mode to undecorated 
-  if (doSecondScreen) frame.setUndecorated(true);
-
-  // add notify again
-  if (doSecondScreen) frame.addNotify();
-  super.init();
-}
-
-
-void draw() {
-
-  try {
-    theFrameRate = (int) frameRate;
-  } 
-  catch (Exception e) {
-    theFrameRate = 60;
-    logData("frameRate");
-    e.printStackTrace();
-  }
-
-  //  if(printMore) println("checkFlags");
-  checkFlags();
-
-  
-  if(processing) {
-  
-//    if (doEffects) for (int i=1; i<6; i++) rows[i].update();  // = render
-  
-    if (balls.size() > maxcount) {
-      killBalls();
-    }
-  
-    float step = advance(1/120.0);
-    try {
-      world.step(step);  
-      //    world.draw(this);        // no need, everything is drawn externally
-    } catch (AssertionError e) {
-      logData("AssertionError world.step()");
-      // e.printStackTrace();
-    } catch (Exception e) {
-      logData("world.step()");
-      e.printStackTrace();
-    }
-  
-  
-    if (doEffects) {
-      effects.update();
-    }
-  
-    //  for (int i=shooters.size()-1; i>= 0; i--) {
-    //    Shooter h = (Shooter) shooters.get(i);
-    //    h.update();
-    //    h.render();
-    //  }
-  
-    for (int i=0; i<swings.size(); i++) {
-      Swing s = (Swing) swings.get(i);
-      s.update();
-      //    if(drawSwings) s.drawSymbol();
-    }
-    for (int i=balls.size()-1; i>= 0; i--) {
-      try {
-        Ball b = (Ball) balls.get(i);
-        b.update();
-        //      b.drawSymbol();
-        if (b.dead()) {
-          balls.remove(i);
-          setTraceLength();
-        }
-      } 
-      catch (Exception e) {
-        logData("balls.get()");
-        e.printStackTrace();
-      }
-    }
-    for (int i=targets.size()-1; i>= 0; i--) {
-      try {
-        Target t = (Target) targets.get(i);
-        t.update();
-        if(t.dead()) {
-          t.kill();
-          targets.remove(i);
-          if(targets.size() < 1) FlagNoMoreTargets = true;
-        }
-      } catch (Exception e) {
-        logData("targets.get()");
-        e.printStackTrace();
-      }
-    }
-  }
-
-  //////////////// RENDER ///////////////////////////////////////
-  background(bgColor);
-  if (doBG) {
-//    image(facade, 0, 0, sw, sh);  // sw,sh facade.width,facade.height
-  }
-  
-  bgTexture();
-  
-  //  switchLanguage();
-  drawLogos();                  // draw logos and all text information
-  drawFramerate();
-  
-  if (doEffects) {
-      effects.drawRadiation();
-  }
-
-  int millis1 = millis();
-  gl = pgl.beginGL();            // OPENGL drawing
-  
-  
-
-  for (int i=balls.size()-1; i>= 0; i--) {
-    try {
-      Ball b = (Ball) balls.get(i);
-      if(traceBall) b.renderHistory();
-    } 
-    catch (Exception e) {
-      logData("balls.get()");
-      e.printStackTrace();
-    }
-  }
-  int millis2 = millis();
-
-  for (int i=0; i<swings.size(); i++) {
-    Swing s = (Swing) swings.get(i);
-    if (drawSwings) s.render();
-  }
-  
-  for (int i=targets.size()-1; i>= 0; i--) {
-    try {
-      Target t = (Target) targets.get(i);
-      t.render();
-    } catch (Exception e) {
-      logData("targets.get()");
-      e.printStackTrace();
-    }
-  }
-
-  for (int i=balls.size()-1; i>= 0; i--) {
-    try {
-      Ball b = (Ball) balls.get(i);
-      b.render();
-    } 
-    catch (Exception e) {
-      logData("balls.get()");
-      e.printStackTrace();
-    }
-  }
-
-  millis1 = millis2 - millis1;
-  millis2 = millis() - millis2;
-
-  pgl.endGL();
-  if (printMore && millis1 > 100) println("opengl \t render: "+millis2+ "\t  renderHistory: "+millis1);
-
-  if (doEffects) {
-    effects.drawSparkles();
-  }
-
-  if (doBorder) drawBorder();
-  if (doMask) drawMask();
-  
-  
-  
-  /////////////////////////////// end rendering ////////////////////
-  
-  if (makeMovie && recording) mm.addFrame();
-
-  if (frameCount%30==0) println(frameRate + "\t\t"+balls.size());
-}
-
-
-void bgTexture() {
-  
-//  gl.glColor3f(1.0, 1.0, 0.0);
-//  
-  textureMode(NORMALIZED);
-  noFill();
-  noStroke();
-  
-  beginShape();
-  if(playMovie) {
-    texture(myMovie);
-  } else {
-    texture(facade);
-  }
-  vertex(0, 0, 0, 0);
-  vertex(width, 0, 1, 0);
-  vertex(width, height, 1, 1);
-  vertex(0, height, 0, 1);
-  endShape(CLOSE);
 }
 
 // --------------------------------------------------------------------- //
@@ -439,6 +484,7 @@ void initWorld() {
 
   createBuilding();                          // create walls and row effects
   if (doObjects) createSwings();
+  addTargets();
 }
 
 
@@ -463,8 +509,11 @@ void switchLanguage() {
 }
 
 void loadBG() {
-//  tex = loadImage("map_1400.png");
+  flash = loadImage("yellow.jpg");
   facade = loadImage("background.jpg");
+  triumph = loadImage("red.jpg");
+  image(flash, 0,0, sw, sh);
+  image(triumph, 0, 0, sw, sh);
 }
 
 
@@ -496,7 +545,7 @@ void drawMask() {
   }
 }
 
-void drawLogos() {
+void drawLogo() {
   // draw logos
   noStroke();
 
@@ -515,33 +564,35 @@ void drawLogos() {
   else textFont(apercu24, 23);
   fill(255, 255, 255, 100);
   text("D A I L Y   T O U S   L E S   J O U R S", getX(0.31), getY(0.97));
+}
 
-
+void drawInstructions() {
+  fill(255, 255, 255, 100);
   textAlign(LEFT);
   if (sw<2688) textFont(apercu24, 12); 
   else textFont(apercubold24, 24);
   fill(255);
   textAlign(LEFT);
-  //  if(e) text("Your ball : Text GO, POP or ZOU to 514 400 1156", getX(0.006), getY(0.84));
+  //  if(e) text("YOUR BALL : Text GO or POP to 514 400 1156", getX(0.006), getY(0.84));
   text("VOTRE BALLE : Textez GO ou POP au 514 400 1156", getX(0.006), getY(0.84));
   textAlign(LEFT);
-  //  if(e) text("Your ball : Text KICK, POW or BOING to 514 400 1156", getX(0.99), getY(0.84));
+  //  if(e) text("YOUR BALL : Text KICK or ZAP to 514 400 1156", getX(0.725), getY(0.84));
   text("VOTRE BALLE : Textez KICK ou ZAP au 514 400 1156", getX(0.725), getY(0.84));
   textAlign(LEFT);
 
   fill(255);
-  if (secretTimer > 0.5 && secretTimer < 0.52) {
-    text("Pour un peu de chaos, textez WHAM", getX(0.3), getY(0.84));
-  } 
-  else if (secretTimer > 0.98 && secretTimer < 1.00) {
-    text("Pour un peu de chaos, textez BOOM", getX(0.3), getY(0.84));
-  }
+//  if (secretTimer > 0.5 && secretTimer < 0.52) {
+//    text("Pour un peu de chaos, textez WHAM", getX(0.3), getY(0.84));
+//  } 
+//  else if (secretTimer > 0.98 && secretTimer < 1.00) {
+//    text("Pour un peu de chaos, textez BOOM", getX(0.3), getY(0.84));
+//  }
+}
 
-
-  // GO
+void drawOutlets() {
+  ////////////// ball outlets: GO, POP, KICK, ZAP
   textAlign(CENTER);
-  if (sw<2688) textFont(frank24, 20); 
-  else textFont(frank48, 40);
+  if (sw<2688) textFont(frank24, 20); else textFont(frank48, 40);
   float y_text = getY(0.1);
   float y_triangle = getY(0.16);
   fill(setColor(1));
@@ -559,18 +610,37 @@ void drawLogos() {
   fill(setColor(4));
   text("ZAP", getX(outlets[4]), y_text);
   drawTriangle(getX(outlets[4]), y_triangle);
+}
 
+void drawHighscore() {
 
-  textAlign(RIGHT);
-  fill(255);
-  if (sw<2688) textFont(frank48, 64); 
-  else textFont(frank48, 128);
-  text(highscore, getX(0.7), getY(0.15));
-  if (sw<2688) textFont(apercubold24, 14); 
-  else textFont(apercubold24, 28);
+  //////////// highscore
+  textAlign(RIGHT, TOP);
+  if(flashCounter > 0) fill(255,255,0); else fill(255);
+  if(triumphCounter > 0) fill(255, 0, 0);
+  if (sw<2688) textFont(frank48, 64); else textFont(frank48, 128);
+  pushMatrix();
+  translate(getX(0.7), getY(0.045));
+  if(triumphCounter>0) scale(3.0);
+  text(highscore, 0, 0);
+  popMatrix();
+  
+  // ce soire
+  if (sw<2688) textFont(apercubold24, 14); else textFont(apercubold24, 28);
   fill(255, 255, 255, 100);
+  textAlign(RIGHT);
   text("CE SOIR", getX(0.695), getY(0.22));
   rect(getX(0.695), getY(0.182), -getX(0.09), -getY(0.004));
+  
+  // missing: top 3 highscore
+}
+
+void drawIdleScreen() {
+  // temporary idle screen
+  textAlign(LEFT, CENTER);
+  fill(255);
+  if (sw<2688) textFont(frank48, 248); else textFont(frank48, 496);
+  text(highscore, getX(0.1), getY(0.5));
 }
 
 void drawTriangle(float x, float y) {
@@ -579,7 +649,7 @@ void drawTriangle(float x, float y) {
 
 void drawFramerate() {
   fill(50, 100, 100);
-  textFont(apercu24, 12);
+  if (sw<2688) textFont(apercu24, 12); else textFont(apercu24, 24);
   text((int) theFrameRate, getX(0.01), getY(0.98));    // display framerate
 }
 
@@ -631,11 +701,9 @@ void contactStarted(FContact contact) {
     String nam2 = b2.getName();
     boolean targetHit = false;
     if(nam.equals("target")) {
-      println("body 1 = target");
       target = b1;
       targetHit = true;
     } else if(nam2.equals("target")) {
-      println("body 2 = target");
       ball = b1;
       targetHit = true;
     }
@@ -644,7 +712,7 @@ void contactStarted(FContact contact) {
       ball.setName("T-ball");
       highscore += points_target;
       if (doEffects) {
-        effects.addRadiation(contact.getX(), contact.getY(), ball.getFillColor());
+        effects.addRadiation(contact.getX(), contact.getY(), setColor(1));  // ball.getFillColor()
         effects.addSparkles(contact.getX(), contact.getY());
 
       // get Height, translate to row
@@ -685,6 +753,7 @@ void checkFlags() {
   }
   if (FlagAddRandomBall) {
     addRandomBall();
+    highscore += points_msg;
     FlagAddRandomBall = false;
     setTraceLength();
   } 
@@ -695,6 +764,7 @@ void checkFlags() {
   if (FlagNoMoreTargets) {
     if(printMore) println("All Targets are hit!");
     FlagNoMoreTargets = false;
+    flashCounter = flashCounterMax;
   }
 }
 
@@ -706,7 +776,7 @@ void setTraceLength() {
   else {
 //    traceBallMax = 3 + 96 - (int) map(no_balls, 1, 99, 0, 96);
        // 1 ..100   2..50  3..33  4..25  5..20  6..17  10..10
-       traceBallMax = 100/no_balls;
+       traceBallMax = 200/no_balls;
   }
   if(printMore) println("setTraceLength to \t"+ traceBallMax + " \t balls "+no_balls);
 }
@@ -715,8 +785,7 @@ void setTraceLength() {
 float advance(float timestep) {
   try {
     return timestep*60.0/(float) theFrameRate;
-  } 
-  catch (Exception e) {
+  } catch (Exception e) {
     logData("advance");
     e.printStackTrace();
     return timestep;

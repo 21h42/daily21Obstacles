@@ -182,7 +182,7 @@ class Row {
 
 class Radiation {
   
-  float dm = getX(0.03);;
+  float dm = getX(0.05);;
   float ddm = 0.1;
   
   color c;
