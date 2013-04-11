@@ -73,7 +73,7 @@ class Ball {
     color_r = red(c)/255.0f;
     color_g = green(c)/255.0f;
     color_b = blue(c)/255.0f;
-
+    
     b = new FCircle(d);
     b.setName("ball");
     b.setNoStroke();

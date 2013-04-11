@@ -33,7 +33,7 @@ int theFrameRate = 1000;      // to be updated to current framerate
 
 // GLOBAL SETTINGS
 int sw = test ? 1344 : 2688;  // 2688 (x769), 1920, 1344
-//int sw = 2688;
+//int sw = 1920;
 int sh;
 
 boolean doOSC = true; // test ? false : true;
@@ -137,16 +137,16 @@ void createSwings() {
   for (int i=0; i<21; i++) {
     // POLY OBJECTS moving
     // no,   x,             y,       scale,   type, fakemoving, color, movex, movey
-    swings.add(new Poly(n++, getX(0.03+i*0.047), getY(0.56), 0.04, "block", doFake, swingColor[i], 0.0, 0.07));
+    swings.add(new Poly(n++, getX(0.03+i*0.047), getY(0.7), 0.04, "block", doFake, swingColor[i], 0.0, 0.07));
   }
 }
 
 
 void setup() {
 
-  // SCREEN RESOLUTION:   3592x1008   989x252  2688x769   1920x539
+  // SCREEN RESOLUTION:  2688x755  3592x1008   989x252  2688x769   1920x539
   sh = (int) (sw / (3592.0/1008.0));
-  if (sw == 2688) sh = 769;
+  if (sw == 2688) sh = 755;
   size(sw, sh, OPENGL );   // try // JAVA2D // OPENGL // P3D // P2D 
   println("screen size \t"+sw+" / "+sh);
 
@@ -171,14 +171,14 @@ void setup() {
   effects = new Effects();
   
   if(playMovie) {
-    myMovie = new Movie(this, "21O_MOUNTAIN_01.mov");
+    //myMovie = new Movie(this, "21O_MOUNTAIN_01.mov");
     myMovie.loop();
   }
 
   if (doOSC) startOSC();
 
   // set location of undecorated frame on second monitor
-  if (doSecondScreen) frame.setLocation(1000, 0);
+  if (doSecondScreen) frame.setLocation(1920, 0);
 }
 
 public void init() {
@@ -226,7 +226,7 @@ void draw() {
       killBalls();
     }
   
-    float step = advance(1/120.0);
+    float step = advance(1/60.0);
     try {
       world.step(step);  
       //    world.draw(this);        // no need, everything is drawn externally
@@ -552,17 +552,20 @@ void drawLogo() {
   fill(setColor(2));
   textAlign(CENTER);
   if (sw<2688) textFont(frank24, 24); 
+  else if(sw==1920) textFont(frank48, 36);
   else textFont(frank48, 48);
   text("21 OBSTACLES", getX(0.31), getY(0.11));
   if (sw<2688) textFont(apercu24, 11); 
+  else if(sw==1920) textFont(apercu24, 16);
   else textFont(apercubold24, 23);
   if (e) text("POWERED BY 21 SWINGS", getX(0.31), getY(0.16)); 
   else text("ACTIVÉS PAR 21 BALANÇOIRES", getX(0.31), getY(0.16)); 
 
   fill(255);
   if (sw<2688) textFont(apercu24, 11); 
+  else if(sw==1920) textFont(apercu24, 16);
   else textFont(apercu24, 23);
-  fill(255, 255, 255, 100);
+  fill(255, 255, 255, 255);
   text("D A I L Y   T O U S   L E S   J O U R S", getX(0.31), getY(0.97));
 }
 
@@ -570,6 +573,7 @@ void drawInstructions() {
   fill(255, 255, 255, 100);
   textAlign(LEFT);
   if (sw<2688) textFont(apercu24, 12); 
+  else if(sw==1920) textFont(apercu24, 16);
   else textFont(apercubold24, 24);
   fill(255);
   textAlign(LEFT);
@@ -592,7 +596,9 @@ void drawInstructions() {
 void drawOutlets() {
   ////////////// ball outlets: GO, POP, KICK, ZAP
   textAlign(CENTER);
-  if (sw<2688) textFont(frank24, 20); else textFont(frank48, 40);
+  if (sw<2688) textFont(frank24, 20); 
+  else if(sw==1920) textFont(frank48,30);
+  else textFont(frank48, 40);
   float y_text = getY(0.1);
   float y_triangle = getY(0.16);
   fill(setColor(1));
@@ -618,7 +624,9 @@ void drawHighscore() {
   textAlign(RIGHT, TOP);
   if(flashCounter > 0) fill(255,255,0); else fill(255);
   if(triumphCounter > 0) fill(255, 0, 0);
-  if (sw<2688) textFont(frank48, 64); else textFont(frank48, 128);
+  if (sw<2688) textFont(frank48, 64); 
+  else if(sw==1920) textFont(frank48, 96);
+  else textFont(frank48, 128);
   pushMatrix();
   translate(getX(0.7), getY(0.045));
   if(triumphCounter>0) scale(3.0);
@@ -626,7 +634,9 @@ void drawHighscore() {
   popMatrix();
   
   // ce soire
-  if (sw<2688) textFont(apercubold24, 14); else textFont(apercubold24, 28);
+  if (sw<2688) textFont(apercubold24, 14); 
+  else if(sw==1920) textFont(apercubold24, 22);
+  else textFont(apercubold24, 28);
   fill(255, 255, 255, 100);
   textAlign(RIGHT);
   text("CE SOIR", getX(0.695), getY(0.22));
@@ -639,7 +649,9 @@ void drawIdleScreen() {
   // temporary idle screen
   textAlign(LEFT, CENTER);
   fill(255);
-  if (sw<2688) textFont(frank48, 248); else textFont(frank48, 496);
+  if (sw<2688) textFont(frank48, 248); 
+  else if (sw==1920) textFont(frank48, 366); 
+  else textFont(frank48, 496);
   text(highscore, getX(0.1), getY(0.5));
 }
 
@@ -649,7 +661,9 @@ void drawTriangle(float x, float y) {
 
 void drawFramerate() {
   fill(50, 100, 100);
-  if (sw<2688) textFont(apercu24, 12); else textFont(apercu24, 24);
+  if (sw<2688) textFont(apercu24, 12); 
+  else if (sw==1920) textFont(apercu24, 16); 
+  else textFont(apercu24, 24);
   text((int) theFrameRate, getX(0.01), getY(0.98));    // display framerate
 }
 

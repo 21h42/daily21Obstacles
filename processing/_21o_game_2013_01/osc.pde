@@ -13,7 +13,7 @@ void startOSC() {
 
 /* incoming osc message are forwarded to the oscEvent method. */
 void oscEvent(OscMessage msg) {
-//  msg.print();
+//    msg.print();
 
     int id = msg.get(0).intValue() -1;
     
@@ -26,14 +26,15 @@ void oscEvent(OscMessage msg) {
       
       
     } else if(msg.checkAddrPattern("/var")) {      // VAR
+    //  msg.print();
       if(id < swings.size()) {
         Swing s = (Swing) swings.get(id);
         int av = msg.get(1).intValue();
         int sv = msg.get(2).intValue();
-        int cv = msg.get(3).intValue();
+        // int cv = msg.get(3).intValue();
 ////        s.setActive(av == 1);  
         s.sync = (sv==0) ? false : true;
-        if(printInput) println("osc: "+id+ " VAR: "+av+" / "+sv + " / "+cv);
+        if(printInput) println("osc: "+id+ " VAR: "+av+" / "+sv );
       }
   //    
       
