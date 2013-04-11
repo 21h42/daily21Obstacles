@@ -4,7 +4,7 @@ class Phone extends Thread {
   boolean running;
  
   String phppass = "go";
-  String url = "http://livingwithourtime.com/21b/pull.php?pass=" + phppass;
+  String url = "http://21o.dailytlj.com/pull.php?pass=" + phppass;
   
   int counter = 0;
   int maxCount = 50;

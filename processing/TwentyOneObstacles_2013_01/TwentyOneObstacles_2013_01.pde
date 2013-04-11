@@ -3,13 +3,13 @@ import fisica.*;      // Physics engine. Documentation at :
 // http://www.ricardmarxer.com/fisica/reference/index.html
 import processing.video.*;     // only for saving out videos
 
-boolean test = false;
+boolean test = true;
 int theFrameRate = 60;
 
 // GLOBAL SETTINGS
 int sw = test ? 1344 : 2688;  // 2688, 1920. 1344
 int sh;
-boolean doOSC = test ? false : true;
+boolean doOSC = true;
 boolean printInput = false;
 boolean printMore = false;
 boolean doPhone = test ? false : true;
