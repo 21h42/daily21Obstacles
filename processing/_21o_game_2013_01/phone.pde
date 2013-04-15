@@ -76,26 +76,25 @@ class Phone extends Thread {
           }
 
           if(printMore) println("PHONE INPUT: \t '"+phoneMsg+ "' \tfrom "+phoneUser+"\tinto lane "+phoneLane);
-          if(phoneLane >= 1 && phoneLane <= 6) {
-            if(phoneLane<=shooters.size()) {
-              try {
-                Shooter h = (Shooter) shooters.get(phoneLane-1);
-                h.launch(phoneUser);
-              } catch (Exception e) {
-                logData("phone shooters.get("+phoneLane+")");
-                e.printStackTrace();
-              }
-            }
+          if(phoneLane >= 1 && phoneLane <= 4) {
+            Ball b = new Ball(ballcount++,getX(outlets[phoneLane]),0, phoneLane);
+            b.b.setVelocity(random(-200.0, 200.0), 300);
+            highscore += points_msg;
+            balls.add(b);
+            setTraceLength();
+//            if(phoneLane<=shooters.size()) {
+//              try {
+//                Shooter h = (Shooter) shooters.get(phoneLane-1);
+//                h.launch(phoneUser);
+//              } catch (Exception e) {
+//                logData("phone shooters.get("+phoneLane+")");
+//                e.printStackTrace();
+//              }
+//            }
           } else if(phoneLane == 7) {  // BIG
-//            addBigBall();
-            FlagAddBigBall = true;
           } else if(phoneLane == 8) {  // xxx
-            effects.sparkleRain();
           } else if(phoneLane == 9) {  // xxx
-            FlagAddManyBalls = true;
-//            for(int j=0; j<100; j++) addRandomBall();
           }  else if(phoneLane == 0) {  // xxx
-//            initWorld();
             FlagInitWorld = true;
           }
           

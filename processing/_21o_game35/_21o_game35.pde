@@ -3,16 +3,16 @@ import fisica.*;      // Physics engine. Documentation at :
 // http://www.ricardmarxer.com/fisica/reference/index.html
 import processing.video.*;     // only for saving out videos
 
-boolean test = false;
+boolean test = true;
 int theFrameRate = 60;
 
 // GLOBAL SETTINGS
 int sw = test ? 1344 : 2688;  // 2688, 1920. 1344
 int sh;
-boolean doOSC = test ? false : true;
+boolean doOSC = false;
 boolean printInput = false;
 boolean printMore = false;
-boolean doPhone = test ? false : true;
+boolean doPhone = true;
 boolean doObjects = true;  // 
 boolean doFake = true;      
 boolean doEffects = true;
@@ -155,6 +155,8 @@ void createSwings() {
 
 
 void setup() {
+  
+  doOSC = true;
   // 3592x1008   989x252  2688x769   1920x539
   sh = (int) (sw / (3592.0/1008.0));
   if (sw == 2688) sh = 769;
