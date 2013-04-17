@@ -77,23 +77,13 @@ class Phone extends Thread {
 
           if(printMore) println("PHONE INPUT: \t '"+phoneMsg+ "' \tfrom "+phoneUser+"\tinto lane "+phoneLane);
           if(phoneLane >= 1 && phoneLane <= 4) {
-            Ball b = new Ball(ballcount++,getX(outlets[phoneLane]),0, phoneLane);
-            b.b.setVelocity(random(-200.0, 200.0), 300);
-            highscore += points_msg;
-            balls.add(b);
-            setTraceLength();
-//            if(phoneLane<=shooters.size()) {
-//              try {
-//                Shooter h = (Shooter) shooters.get(phoneLane-1);
-//                h.launch(phoneUser);
-//              } catch (Exception e) {
-//                logData("phone shooters.get("+phoneLane+")");
-//                e.printStackTrace();
-//              }
-//            }
-          } else if(phoneLane == 7) {  // BIG
-          } else if(phoneLane == 8) {  // xxx
-          } else if(phoneLane == 9) {  // xxx
+            resetIdle();  // phone input succeeded, skip idle-time if on
+            if(phoneLane<=graphics.outlets.length) {
+              graphics.outlets[phoneLane-1].launch(phoneUser);
+            }
+          } else if(phoneLane == 7) {  // 
+          } else if(phoneLane == 8) {  // 
+          } else if(phoneLane == 9) {  // 
           }  else if(phoneLane == 0) {  // xxx
             FlagInitWorld = true;
           }

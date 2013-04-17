@@ -1,4 +1,9 @@
-
+void addRandomBall() {
+  Ball b = new Ball(ballcount++,(int) random(100,width-100),0, (int) random(1,5));
+  b.b.setVelocity(random(-200.0, 200.0), 300);
+  balls.add(b);
+  resetIdle();
+}
 
 class Ball {
 
@@ -11,8 +16,8 @@ class Ball {
   FCircle b;          // physical body of ball
 
   float d;            // actual diameter (scaled to overall scale with getX())
-  float dm = 0.02;   // set diameter
-  float odm = 0.02;  // original diamter (before aging)
+  float dm = oBallSize;   // set diameter
+  float odm = oBallSize;  // original diamter (before aging)
   float scd = 2.0;    // scale divider
   float trace_d;
   float trace_dm = 0.003;
@@ -143,7 +148,7 @@ class Ball {
       b.setName("ball");    // return name to standard name
       
       // clone itself 2 times
-      if(balls.size() < maxcount) {
+      if(balls.size() < maxBallCount) {
         if(printMore) println("clone ball!!!   "+balls.size());
         for(int i= 0; i<2; i++) {
           Ball nb = new Ball(ballcount++,(int) xpos,(int) ypos, lane);
@@ -161,38 +166,31 @@ class Ball {
   void drawSymbol() {
     fill(c);
     noStroke();
-//    if(traceBall) {
-//      for(int i=0; i<history.size(); i++) {
-//        Vector2D v = (Vector2D) history.get(i);
-//        ellipse(v._x, v._y, trace_d, trace_d);
-//      }
-//    }
     ellipse(xpos,ypos,d,d);
   }
   
-  void renderHistory() {
-//    gl.glColor3f(color_r,color_g,color_b);
-//    int maxi = (historyCounts < 12) ? historyCounts : 12;
-//    for(int i=0; i<maxi; i++) {  // historyCounts
-//       glEllipse(historyXY[i*2], historyXY[i*2 + 1], trace_d, trace_d);
-//    }
-    for(int i=0; i<history.size(); i++) {
-       Vector2D v = (Vector2D) history.get(i);
-       float history_alpha = (float) i / history.size();
-       history_alpha = history_alpha < 0.2 ? history_alpha*5 : 1.0;  // only fade last 20%
-       gl.glColor4f(color_r,color_g,color_b, history_alpha);
-       glEllipse(v._x, v._y, trace_d, trace_d);
+  void renderHistory(float _alpha) {
+    if(_alpha>0) {
+      for(int i=0; i<history.size(); i++) {
+         Vector2D v = (Vector2D) history.get(i);
+         float history_alpha = (float) i / history.size();
+         history_alpha = history_alpha < 0.2 ? history_alpha*5 : 1.0;  // only fade last 20%
+         history_alpha *= _alpha;
+         gl.glColor4f(color_r,color_g,color_b, history_alpha);
+         glEllipse(v._x, v._y, trace_d, trace_d);
+      }
     }
   }
   // opengl drawing
-  void render() {
-    // red(c)*255,(int) green(c),(int) blue(c)
-    if(blink) {
-      blink = false;
-      // add some action
+  void render(float _alpha) {
+    if(_alpha>0) {
+      if(blink) {
+        blink = false;
+        // add some action
+      }
+      gl.glColor4f(color_r,color_g,color_b,_alpha);
+      glEllipse(xpos,ypos,d,d);
     }
-    gl.glColor3f(color_r,color_g,color_b);
-    glEllipse(xpos,ypos,d,d);
   }
   
   void glEllipse(float x, float y, float w, float h) {

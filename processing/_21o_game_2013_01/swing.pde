@@ -1,19 +1,23 @@
 
-
 color setColor(int t) {
+  return setColor(t, 1);
+}
+
+color setColor(int t, float _alpha) {
+  _alpha *= 255;
   switch(t) {
-    case 1:  return color(255,255,0);    // yellow
-    case 2:  return color(97,255,247);   // cyan
-    case 3:  return color(50,255,50);    // green
-    case 4:  return color(255,0,255);    // pink
+    case 1:  return color(255,255,0,_alpha);    // yellow
+    case 2:  return color(97,255,247,_alpha);   // cyan
+    case 3:  return color(50,255,50,_alpha);    // green
+    case 4:  return color(255,0,255,_alpha);    // pink
     
-    case 5:  return color(245,85,95);    // lachs
-    case 6:  return color(255,100,50);   // orange
-    case 7:  return color(255,0,0);      // red
-    case 8:  return color(120,85,240);   // pale violet
-    case 9:  return color(255,0,0);
-    case 11: return color(255);
-    default: return color(random(255),random(255),random(255));
+    case 5:  return color(245,85,95,_alpha);    // lachs
+    case 6:  return color(255,100,50,_alpha);   // orange
+    case 7:  return color(255,0,0,_alpha);      // red
+    case 8:  return color(120,85,240,_alpha);   // pale violet
+    case 9:  return color(255,0,0,_alpha);
+    case 11: return color(255,_alpha);
+    default: return color(random(255),random(255),random(255),_alpha);
   }
 }
 
@@ -124,7 +128,7 @@ class Swing {
     
   }
   
-  void render() {
+  void render(float _alpha) {
     
   }
   

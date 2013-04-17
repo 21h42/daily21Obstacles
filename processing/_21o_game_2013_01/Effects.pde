@@ -1,24 +1,32 @@
 
 class Effects {
   
-  ArrayList all;  // radiations
+  ArrayList radiations;  // radiations
   ArrayList particles;
+  Row[] rows = new Row[6];              // row effects
+  ArrayList winpoints;
   
   int maxParticles = 400;
   int maxRadiation = 20;
+  int maxWinPoints = 20;
   
   Effects() {
-    all = new ArrayList();
+    radiations = new ArrayList();
     particles = new ArrayList();
+    winpoints = new ArrayList();
+    
+    for(int i=0; i<6; i++) {
+      rows[i] = new Row(i,getY(heightFloor[i]-0.02));
+    }
   }
   
   void update() {
-    if(all.size() > 0) {
-      for(int i=all.size()-1; i>= 0; i--) {
-        Radiation p = (Radiation) all.get(i);
+    if(radiations.size() > 0) {
+      for(int i=radiations.size()-1; i>= 0; i--) {
+        Radiation p = (Radiation) radiations.get(i);
         p.run();
         if(p.dead()) {
-          all.remove(i);
+          radiations.remove(i);
         }
       }
     }
@@ -31,24 +39,45 @@ class Effects {
         }
       }
     }
+    
+    if(winpoints.size() > 0) {
+      for(int i=winpoints.size()-1; i>= 0; i--) {
+        winPoints w = (winPoints) winpoints.get(i);
+        w.run();
+        if(w.dead()) {
+          winpoints.remove(i);
+        }
+      }
+    }
+    
+    for (int i=1; i<6; i++) rows[i].update();
+    
     if(particles.size() > maxParticles) {
-//      println("kill 10 sparkles");
-      // kill the first 10 particles
+      // kill the first 10
       for(int i=50; i>= 0; i-=5) {
         particles.remove(i);
       }
     }
-    if(all.size() > maxRadiation) {
-//      println("kill 5 radiation");
-      // kill the first 10 particles
+    if(radiations.size() > maxRadiation) {
+      // kill the first 10
       for(int i=10; i>= 0; i-=2) {
-        all.remove(i);
+        radiations.remove(i);
+      }
+    }
+    if(winpoints.size() > maxWinPoints) {
+      // kill the first 10
+      for(int i=10; i>= 0; i-=2) {
+        winpoints.remove(i);
       }
     }
   }
   
   void addRadiation(float xx, float yy, color cc) {
-    all.add(new Radiation(xx, yy, cc));
+    radiations.add(new Radiation(xx, yy, cc));
+  }
+  
+  void addWinPoints(float xx, float yy) {
+    winpoints.add(new winPoints(xx, yy, points_target[level] + ".png"));
   }
   
   void addSparkles(float xx, float yy) {
@@ -72,9 +101,9 @@ class Effects {
   }
   
   void drawRadiation() {
-    if(all.size() > 0) {
-      for(int i=all.size()-1; i>= 0; i--) {
-        Radiation p = (Radiation) all.get(i);
+    if(radiations.size() > 0) {
+      for(int i=radiations.size()-1; i>= 0; i--) {
+        Radiation p = (Radiation) radiations.get(i);
         p.render();
       }
     }
@@ -90,13 +119,20 @@ class Effects {
     }
   }
   
-}
+  void drawWinPoints(float resScale, float _alpha) {
+    if(winpoints.size() > 0 && _alpha>0) {
+      for(int i=winpoints.size()-1; i>= 0; i--) {
+        winPoints w = (winPoints) winpoints.get(i);
+        w.render(resScale, _alpha);
+      }
+    }
+  }
   
-//  void explode() {
-//    for(int i=0; i<10; i++) {
-//      particles.add(new Confetti(xpos, ypos));
-//    }
-//  }
+  void drawRows() {
+    for (int i=1; i<6; i++) rows[i].render();
+  }
+  
+}
 
 
 class Row {
@@ -165,11 +201,9 @@ class Row {
         endS = 0;
       }
     }
-    if(id!=0) render();
   }
   
   void animate() {
-    
     timer = 1.0;
   }
   
@@ -228,6 +262,54 @@ class Radiation {
   
 }
 
+
+class winPoints {
+  
+  PImage img;
+  
+  float x;
+  float y;
+  
+  float timer;
+  float fadeSpeed = 0.025;
+  
+  winPoints(float xx, float yy, String filename) {
+    x = xx;
+    y = yy;
+    img = loadImage(filename);
+    timer = 0.0;
+  }
+  
+  void render(float scaleRes, float _alpha) {
+    pushMatrix();
+    translate(x,y);
+    float scaleV;
+    if(timer > 1.0) {
+      // fade out again
+      scaleV = scaleRes;
+      tint(255, ((1.2-timer)*255*5)*_alpha);
+    } else {
+      // scale in, fade in
+      scaleV = timer * scaleRes;
+      tint(255, (255*scaleV)*_alpha);
+    }
+    image(img, -img.width*scaleV/2.0, -img.height*scaleV/2.0, img.width*scaleV, img.height*scaleV);
+    popMatrix();
+  }
+  
+  void run() {
+    timer += advance(fadeSpeed);
+  }
+  
+  boolean dead() {
+    if (timer >= 1.2) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  
+}
 
 class Sparkle {
   PVector loc;

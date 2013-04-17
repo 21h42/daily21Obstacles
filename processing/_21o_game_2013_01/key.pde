@@ -4,13 +4,9 @@ void keyReleased() {
     processing = !processing;
   } else if(key > '0' && key < '5') {
     int id = (int)(key-'0');
-    println("shoot ball \t"+id);
-    
-    Ball b = new Ball(ballcount++,getX(outlets[id]),0, id);
-    b.b.setVelocity(random(-200.0, 200.0), 300);
-    highscore += points_msg;
-    balls.add(b);
-    setTraceLength();
+    println("launch ball \t"+id);
+    resetIdle();
+    graphics.outlets[id-1].launch("514513929");
     
   } else if(key == '8') {
     effects.sparkleRain();
@@ -28,6 +24,10 @@ void keyReleased() {
     addTargets();
     println("addTargets");
     
+  } else if(key == 'l') {
+    FlagEndLevel = true;
+    
+    
   } else if(key == 't') {
     traceSwing = !traceSwing;
     println("traceSwing \t"+traceSwing);
@@ -35,10 +35,6 @@ void keyReleased() {
   } else if(key == '9') {
     println("many balls");
     FlagAddManyBalls = true;
-    
-  } else if(key == 's') {
-    drawSwings = !drawSwings;
-    println("drawSwings \t"+drawSwings);
     
   } else if(key == 'w') {
     targetMove = !targetMove;
@@ -81,19 +77,9 @@ void keyReleased() {
     idle = !idle;
     println("idle \t"+idle);
     
-  } else if(key == 'j') {
-    bgImgNo++;
-    if(bgImgNo>2) bgImgNo = 1;
-    loadBG();
-    println("bgImgNo \t"+bgImgNo);
-    
   } else if(key == 'b') {
     doBorder = !doBorder;
     println("doBorder \t"+doBorder);
-    
-  } else if(key == 'o') {
-    doObjects = !doObjects;
-    println("doObjects \t"+doObjects);
     
   } else if(key == 'u') {
     FlagAddRandomBall = true;
@@ -132,17 +118,15 @@ void mouseReleased() {
 //  b.setOriginalDiameter(0.020);
   b.setOriginalDiameter(random(0.01, 0.03));
   balls.add(b);
+  setTraceLength();
+  resetIdle();
 }
 
 void mouseDragged() {
 //  println( mouseX/(float) sw+ " / "+mouseY/(float) sh);
 }
 
-void addRandomBall() {
-  Ball b = new Ball(ballcount++,(int) random(100,width-100),0, (int) random(1,5));
-  b.b.setVelocity(random(-200.0, 200.0), 300);
-  balls.add(b);
-}
+
 
 
 
